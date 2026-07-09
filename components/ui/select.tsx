@@ -21,7 +21,7 @@ export const SelectTrigger = React.forwardRef<
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown size={16} className="text-text-faint" />
+      <ChevronDown size={16} className="text-text-faint" aria-hidden />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -62,7 +62,7 @@ export const SelectItem = React.forwardRef<
   >
     <span className="absolute left-2 flex items-center">
       <SelectPrimitive.ItemIndicator>
-        <Check size={14} />
+        <Check size={14} aria-hidden />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
