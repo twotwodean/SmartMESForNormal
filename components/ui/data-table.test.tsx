@@ -43,4 +43,22 @@ describe("DataTable", () => {
     expect(bodyRows()).toHaveLength(1);
     expect(bodyRows()[0]).toHaveTextContent("WO-2");
   });
+
+  it("행 선택 체크박스로 행을 선택한다", async () => {
+    const user = userEvent.setup();
+    render(<DataTable columns={columns} data={data} enableRowSelection />);
+    const rowChecks = screen.getAllByRole("checkbox", { name: "행 선택" });
+    expect(rowChecks).toHaveLength(3);
+    await user.click(rowChecks[0]);
+    expect(rowChecks[0]).toBeChecked();
+  });
+
+  it("전체 선택 체크박스로 모든 행을 선택한다", async () => {
+    const user = userEvent.setup();
+    render(<DataTable columns={columns} data={data} enableRowSelection />);
+    await user.click(screen.getByRole("checkbox", { name: "전체 선택" }));
+    for (const cb of screen.getAllByRole("checkbox", { name: "행 선택" })) {
+      expect(cb).toBeChecked();
+    }
+  });
 });

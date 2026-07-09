@@ -43,3 +43,4 @@ export const Basic: Story = { args: { columns, data } };
 export const Sortable: Story = { args: { columns, data, enableFilter: true, filterPlaceholder: "지시·품목 검색" } };
 export const Paginated: Story = { args: { columns, data, enablePagination: true, pageSize: 3, enableFilter: true } };
 export const Empty: Story = { args: { columns, data: [], emptyMessage: "작업지시가 없습니다." } };
+export const Selectable: Story = { args: { columns, data, enableRowSelection: true } };

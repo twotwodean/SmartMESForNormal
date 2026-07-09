@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -27,6 +28,7 @@ export interface DataTableProps<TData, TValue> {
   pageSize?: number;
   stickyHeader?: boolean;
   emptyMessage?: string;
+  enableRowSelection?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -38,19 +40,53 @@ export function DataTable<TData, TValue>({
   pageSize = 10,
   stickyHeader = false,
   emptyMessage = "데이터가 없습니다.",
+  enableRowSelection = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- header/cell 함수 정체성을 렌더마다 고정해 flexRender가 매번 새 컴포넌트로 인식해 재마운트하는 것을 방지
+  const selectionColumn = React.useMemo<ColumnDef<TData, TValue>>(
+    () => ({
+      id: "__select",
+      enableSorting: false,
+      header: ({ table }) => (
+        <Checkbox
+          aria-label="전체 선택"
+          checked={
+            table.getIsAllPageRowsSelected()
+              ? true
+              : table.getIsSomePageRowsSelected()
+                ? "indeterminate"
+                : false
+          }
+          onCheckedChange={(v) => table.toggleAllPageRowsSelected(v === true)}
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          aria-label="행 선택"
+          checked={row.getIsSelected()}
+          onCheckedChange={(v) => row.toggleSelected(v === true)}
+        />
+      ),
+    }),
+    [],
+  );
+  const effectiveColumns = React.useMemo(
+    () => (enableRowSelection ? [selectionColumn, ...columns] : columns),
+    [enableRowSelection, columns, selectionColumn],
+  );
+
   const table = useReactTable({
     data,
-    columns,
+    columns: effectiveColumns,
     state: { sorting, globalFilter, rowSelection },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
-    enableRowSelection: true,
+    enableRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -123,7 +159,7 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="py-8 text-center text-text-muted">
+                <TableCell colSpan={effectiveColumns.length} className="py-8 text-center text-text-muted">
                   {emptyMessage}
                 </TableCell>
               </TableRow>

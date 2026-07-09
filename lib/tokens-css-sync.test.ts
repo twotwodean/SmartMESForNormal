@@ -38,4 +38,19 @@ describe("토큰 ↔ globals.css 정합성", () => {
       expect(cssVar(lightBody, k)).toBe(NEUTRAL_COLORS.light[k].toUpperCase());
     }
   });
+
+  it("soft 의미색 변형이 일치한다", () => {
+    for (const [key, val] of Object.entries(SEMANTIC_COLORS)) {
+      expect(cssVar(darkBody, `${key}-soft`)).toBe(val.darkSoft.toUpperCase());
+      expect(cssVar(lightBody, `${key}-soft`)).toBe(val.lightSoft.toUpperCase());
+    }
+  });
+
+  it("중립 텍스트색(text/muted/faint)이 일치한다", () => {
+    const map = { text: "text", "text-muted": "muted", "text-faint": "faint" } as const;
+    for (const [tokenKey, cssName] of Object.entries(map)) {
+      expect(cssVar(darkBody, cssName)).toBe(NEUTRAL_COLORS.dark[tokenKey as keyof typeof NEUTRAL_COLORS.dark].toUpperCase());
+      expect(cssVar(lightBody, cssName)).toBe(NEUTRAL_COLORS.light[tokenKey as keyof typeof NEUTRAL_COLORS.light].toUpperCase());
+    }
+  });
 });
