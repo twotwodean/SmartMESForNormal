@@ -34,6 +34,7 @@ const config: Config = {
       transitionDuration: { DEFAULT: "150ms" },
     },
   },
+  safelist: ["bg-primary", "bg-ok", "bg-warn", "bg-crit", "bg-info", "bg-neutral"],
   plugins: [],
 };
 
