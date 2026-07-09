@@ -1,0 +1,326 @@
+<style>
+  :root {
+    --bg: #F6F8FA; --surface: #FFFFFF; --elevated: #FFFFFF; --border: #E3E8EF;
+    --text: #0F172A; --muted: #52607A; --faint: #8A97AD;
+    --primary: #2563EB; --primary-fg: #FFFFFF; --primary-soft: #E5EDFF;
+    --ok: #16A34A; --warn: #D97706; --crit: #DC2626; --info: #0EA5E9; --neutral: #64748B;
+    --ok-soft: #DCFCE7; --warn-soft: #FEF3C7; --crit-soft: #FEE2E2; --info-soft: #E0F2FE; --neutral-soft: #EEF2F7;
+    --shadow: 0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.04);
+    --shadow-lg: 0 8px 28px rgba(15,23,42,.14);
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+    --sans: "Pretendard", "Malgun Gothic", -apple-system, system-ui, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0B0F14; --surface: #121821; --elevated: #1A2230; --border: #26303D;
+      --text: #E2E8F0; --muted: #94A3B8; --faint: #64748B;
+      --primary: #3B82F6; --primary-fg: #FFFFFF; --primary-soft: #17233C;
+      --ok: #22C55E; --warn: #F59E0B; --crit: #EF4444; --info: #38BDF8; --neutral: #64748B;
+      --ok-soft: #12281B; --warn-soft: #2B2110; --crit-soft: #2B1414; --info-soft: #0E2430; --neutral-soft: #1B2430;
+      --shadow: none; --shadow-lg: 0 12px 32px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #F6F8FA; --surface: #FFFFFF; --elevated: #FFFFFF; --border: #E3E8EF;
+    --text: #0F172A; --muted: #52607A; --faint: #8A97AD;
+    --primary: #2563EB; --primary-soft: #E5EDFF;
+    --ok: #16A34A; --warn: #D97706; --crit: #DC2626; --info: #0EA5E9; --neutral: #64748B;
+    --ok-soft: #DCFCE7; --warn-soft: #FEF3C7; --crit-soft: #FEE2E2; --info-soft: #E0F2FE; --neutral-soft: #EEF2F7;
+    --shadow: 0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.04); --shadow-lg: 0 8px 28px rgba(15,23,42,.14);
+  }
+  :root[data-theme="dark"] {
+    --bg: #0B0F14; --surface: #121821; --elevated: #1A2230; --border: #26303D;
+    --text: #E2E8F0; --muted: #94A3B8; --faint: #64748B;
+    --primary: #3B82F6; --primary-soft: #17233C;
+    --ok: #22C55E; --warn: #F59E0B; --crit: #EF4444; --info: #38BDF8; --neutral: #64748B;
+    --ok-soft: #12281B; --warn-soft: #2B2110; --crit-soft: #2B1414; --info-soft: #0E2430; --neutral-soft: #1B2430;
+    --shadow: none; --shadow-lg: 0 12px 32px rgba(0,0,0,.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums; }
+  h1,h2,h3 { text-wrap: balance; }
+
+  /* ── shell ── */
+  .app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+  .side { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .brand { display: flex; align-items: center; gap: 9px; padding: 16px 18px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 15px; }
+  .brand .logo { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, var(--primary), var(--info)); display: grid; place-items: center; color: #fff; font-size: 14px; }
+  .nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+  .nav-group > p { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); padding: 0 8px 5px; }
+  .nav-item { display: block; padding: 7px 10px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 13px; }
+  .nav-item:hover { background: var(--elevated); color: var(--text); }
+  .nav-item.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+  .kiosk-link { margin: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; text-align: center; color: var(--muted); text-decoration: none; font-size: 13px; }
+
+  .main { display: flex; flex-direction: column; min-width: 0; }
+  .topbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 10px 20px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .crumb { font-size: 13px; color: var(--muted); }
+  .crumb b { color: var(--text); font-weight: 600; }
+  .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  .content { padding: 22px 24px 48px; max-width: 1380px; width: 100%; }
+
+  /* ── pieces ── */
+  .pagehead { margin-bottom: 18px; }
+  .pagehead h1 { font-size: 22px; font-weight: 700; }
+  .pagehead p { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 15px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .kpi .label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .kpi .val { font-size: 27px; font-weight: 700; margin-top: 6px; letter-spacing: -.01em; }
+  .kpi .val small { font-size: 14px; font-weight: 600; color: var(--muted); }
+  .kpi .delta { font-size: 12px; margin-top: 3px; font-weight: 600; }
+  .kpi .stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+  .up { color: var(--ok); } .down { color: var(--crit); }
+  .spark { position: absolute; right: 12px; bottom: 10px; opacity: .85; }
+
+  .grid2 { display: grid; grid-template-columns: 1.55fr 1fr; gap: 16px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  .panel > header { display: flex; align-items: center; gap: 8px; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+  .panel > header h2 { font-size: 14px; font-weight: 600; }
+  .panel > header .count { font-size: 12px; color: var(--faint); }
+  .panel .body { padding: 6px 6px 8px; }
+  .seg { margin-left: auto; display: flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; font-size: 12px; }
+  .seg span { padding: 3px 10px; color: var(--muted); }
+  .seg span.on { background: var(--primary); color: #fff; font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--faint); padding: 8px 10px; }
+  td { padding: 9px 10px; border-top: 1px solid var(--border); }
+  tbody tr:hover { background: var(--elevated); }
+  .mono { font-family: var(--mono); font-size: 12.5px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.6; }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .p-ok { color: var(--ok); background: var(--ok-soft); }
+  .p-warn { color: var(--warn); background: var(--warn-soft); }
+  .p-crit { color: var(--crit); background: var(--crit-soft); }
+  .p-info { color: var(--info); background: var(--info-soft); }
+  .p-neutral { color: var(--neutral); background: var(--neutral-soft); }
+
+  .prog { height: 6px; border-radius: 4px; background: var(--elevated); overflow: hidden; min-width: 64px; }
+  .prog > i { display: block; height: 100%; background: var(--primary); }
+
+  .conn { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--ok); background: var(--ok-soft); }
+  .conn::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent); }
+  .user { color: var(--text); } .user small { color: var(--faint); }
+  .tgl { border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 7px; padding: 5px 10px; cursor: pointer; font-size: 13px; font-family: inherit; }
+  .tgl:hover { color: var(--text); }
+
+  .alarm { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; border-top: 1px solid var(--border); }
+  .alarm:first-child { border-top: none; }
+  .alarm .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex: none; }
+  .alarm .t { font-size: 13px; font-weight: 500; }
+  .alarm .m { font-size: 12px; color: var(--muted); }
+  .alarm .ago { margin-left: auto; font-size: 11px; color: var(--faint); white-space: nowrap; }
+
+  .lines { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 14px; }
+  .linecard { border: 1px solid var(--border); border-radius: 9px; padding: 11px 12px; }
+  .linecard .n { font-size: 12px; color: var(--muted); }
+  .linecard .oee { font-size: 20px; font-weight: 700; margin-top: 3px; }
+  .gauge { height: 5px; border-radius: 3px; background: var(--elevated); margin-top: 8px; overflow: hidden; }
+  .gauge > i { display: block; height: 100%; }
+
+  .banner { display: flex; align-items: center; gap: 10px; padding: 11px 15px; border-radius: 9px; background: var(--warn-soft); color: var(--warn); font-size: 13px; font-weight: 500; margin: 16px 0; border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); }
+
+  /* ── design system section ── */
+  .ds { margin-top: 40px; padding-top: 26px; border-top: 1px dashed var(--border); }
+  .ds > h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); margin-bottom: 16px; }
+  .dsgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sw { width: 62px; }
+  .sw i { display: block; height: 40px; border-radius: 7px; border: 1px solid var(--border); }
+  .sw span { font-size: 10.5px; color: var(--muted); display: block; margin-top: 4px; }
+  .sw code { font-size: 10px; color: var(--faint); font-family: var(--mono); }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .btn { font-family: inherit; font-size: 13px; font-weight: 600; border-radius: 7px; padding: 7px 14px; border: 1px solid transparent; cursor: pointer; }
+  .btn-pri { background: var(--primary); color: var(--primary-fg); }
+  .btn-sec { background: var(--surface); color: var(--text); border-color: var(--border); }
+  .btn-ghost { background: transparent; color: var(--muted); }
+  .btn-danger { background: var(--crit); color: #fff; }
+  .typescale > div { display: flex; align-items: baseline; gap: 12px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .typescale .tag { font-family: var(--mono); font-size: 11px; color: var(--faint); width: 84px; flex: none; }
+  .kioskcard { border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: var(--surface); text-align: center; }
+  .kioskcard .kv { font-size: 40px; font-weight: 700; margin: 6px 0; }
+  .kioskbtns { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
+  .kbtn { width: 52px; height: 52px; border-radius: 10px; border: 1px solid var(--border); background: var(--elevated); font-size: 24px; color: var(--text); cursor: pointer; }
+  .kbtn.go { width: auto; padding: 0 26px; background: var(--primary); color: #fff; border-color: transparent; font-size: 18px; font-weight: 700; }
+
+  .footer { margin-top: 30px; font-size: 12px; color: var(--faint); }
+  @media (max-width: 960px) {
+    .app { grid-template-columns: 1fr; } .side { display: none; }
+    .kpis { grid-template-columns: repeat(2, 1fr); } .grid2 { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="logo">▤</span> 스마트 MES</div>
+    <nav class="nav">
+      <div class="nav-group"><p>🏠 대시보드</p><a class="nav-item active" href="#">통합 현황</a></div>
+      <div class="nav-group"><p>🏭 생산관리</p>
+        <a class="nav-item" href="#">생산계획</a><a class="nav-item" href="#">작업지시</a><a class="nav-item" href="#">생산실적</a></div>
+      <div class="nav-group"><p>🔎 품질·추적</p>
+        <a class="nav-item" href="#">Lot 추적</a><a class="nav-item" href="#">검사·부적합</a></div>
+      <div class="nav-group"><p>📦 재고관리</p>
+        <a class="nav-item" href="#">재고 현황</a><a class="nav-item" href="#">수불 등록/이력</a></div>
+      <div class="nav-group"><p>🛠 설비관리</p>
+        <a class="nav-item" href="#">설비 정비</a><a class="nav-item" href="#">예방점검</a></div>
+      <div class="nav-group"><p>🗂 기준정보</p>
+        <a class="nav-item" href="#">품목 / BOM</a><a class="nav-item" href="#">작업장 / 설비</a><a class="nav-item" href="#">공정 / Routing</a></div>
+    </nav>
+    <a class="kiosk-link" href="#">🖥 현장 키오스크</a>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <span class="crumb"><b>대시보드</b> › 통합 현황</span>
+      <div class="right">
+        <span class="conn">PLC 연결됨</span>
+        <span class="num" style="color:var(--muted)">🕒 14:32:07</span>
+        <span class="user">김현장 <small>(관리자)</small></span>
+        <button class="tgl" id="tgl">◐ 테마</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="pagehead">
+        <h1>생산 통합 현황</h1>
+        <p>2공장 · 실시간 POP · 오늘 08:00–14:32 기준</p>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><span class="stripe" style="background:var(--primary)"></span>
+          <div class="label">계획 대비 실적</div><div class="val num">92.4<small>%</small></div><div class="delta up">▲ 3.1%p</div>
+          <svg class="spark" width="52" height="20"><polyline fill="none" stroke="var(--primary)" stroke-width="1.8" points="0,15 10,12 20,14 30,8 42,9 52,4"/></svg></div>
+        <div class="kpi"><span class="stripe" style="background:var(--ok)"></span>
+          <div class="label">설비종합효율 OEE</div><div class="val num">78.4<small>%</small></div><div class="delta up">▲ 1.2%p</div>
+          <svg class="spark" width="52" height="20"><polyline fill="none" stroke="var(--ok)" stroke-width="1.8" points="0,10 12,12 24,7 34,9 44,6 52,7"/></svg></div>
+        <div class="kpi"><span class="stripe" style="background:var(--warn)"></span>
+          <div class="label">불량 PPM</div><div class="val num">3,200</div><div class="delta down">▲ 420</div>
+          <svg class="spark" width="52" height="20"><polyline fill="none" stroke="var(--warn)" stroke-width="1.8" points="0,14 12,10 24,12 34,8 44,10 52,5"/></svg></div>
+        <div class="kpi"><span class="stripe" style="background:var(--crit)"></span>
+          <div class="label">재고 경고</div><div class="val num">3<small>건</small></div><div class="delta" style="color:var(--muted)">안전재고 미달 2 · 음수 1</div></div>
+        <div class="kpi"><span class="stripe" style="background:var(--info)"></span>
+          <div class="label">가동 설비</div><div class="val num">14<small>/16</small></div><div class="delta" style="color:var(--muted)">정지 1 · 수리 1</div></div>
+      </div>
+
+      <div class="grid2">
+        <section class="panel">
+          <header><h2>작업지시</h2><span class="count">진행 5 · 대기 3</span>
+            <span class="seg"><span class="on">리스트</span><span>칸반</span><span>간트</span></span></header>
+          <div class="body">
+            <table>
+              <thead><tr><th>지시번호</th><th>품목</th><th>수량</th><th>진척</th><th>상태</th><th>작업장</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">WO-260709-014</td><td>브라켓 ASSY (RF-L)</td><td class="num">1,200</td>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="prog"><i style="width:72%"></i></div><span class="num" style="color:var(--muted);font-size:12px">72%</span></div></td>
+                  <td><span class="pill p-info">진행</span></td><td>CNC 1라인</td></tr>
+                <tr><td class="mono">WO-260709-013</td><td>하우징 커버 M3</td><td class="num">800</td>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="prog"><i style="width:100%"></i></div><span class="num" style="color:var(--muted);font-size:12px">100%</span></div></td>
+                  <td><span class="pill p-ok">완료</span></td><td>프레스 2라인</td></tr>
+                <tr><td class="mono">WO-260709-012</td><td>샤프트 SUS-304</td><td class="num">450</td>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="prog"><i style="width:38%"></i></div><span class="num" style="color:var(--muted);font-size:12px">38%</span></div></td>
+                  <td><span class="pill p-info">진행</span></td><td>선반 3라인</td></tr>
+                <tr><td class="mono">WO-260709-011</td><td>기어박스 GB-2500</td><td class="num">300</td>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="prog"><i style="width:0%"></i></div><span class="num" style="color:var(--faint);font-size:12px">대기</span></div></td>
+                  <td><span class="pill p-warn">대기</span></td><td>조립 1라인</td></tr>
+                <tr><td class="mono">WO-260709-009</td><td>커넥터 하네스</td><td class="num">2,000</td>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="prog"><i style="width:15%;background:var(--neutral)"></i></div><span class="num" style="color:var(--faint);font-size:12px">취소</span></div></td>
+                  <td><span class="pill p-neutral">취소</span></td><td>—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <section class="panel">
+            <header><h2>알람 · 이벤트</h2><span class="count">활성 2</span></header>
+            <div>
+              <div class="alarm"><span class="dot" style="background:var(--crit)"></span>
+                <div><div class="t">CNC-03 설비 정지</div><div class="m">주축 과부하 — 정비 요청 발행됨</div></div><span class="ago">4분 전</span></div>
+              <div class="alarm"><span class="dot" style="background:var(--warn)"></span>
+                <div><div class="t">원자재 SUS-304 안전재고 미달</div><div class="m">현재고 180 / 안전 250</div></div><span class="ago">22분 전</span></div>
+              <div class="alarm"><span class="dot" style="background:var(--info)"></span>
+                <div><div class="t">WO-260709-013 완료 입고</div><div class="m">하우징 커버 800 EA → 제품창고</div></div><span class="ago">31분 전</span></div>
+            </div>
+          </section>
+          <section class="panel">
+            <header><h2>라인 가동률</h2><span class="count">4개 라인</span></header>
+            <div class="lines">
+              <div class="linecard"><div class="n">CNC 1라인</div><div class="oee num" style="color:var(--ok)">86%</div><div class="gauge"><i style="width:86%;background:var(--ok)"></i></div></div>
+              <div class="linecard"><div class="n">프레스 2라인</div><div class="oee num" style="color:var(--ok)">81%</div><div class="gauge"><i style="width:81%;background:var(--ok)"></i></div></div>
+              <div class="linecard"><div class="n">선반 3라인</div><div class="oee num" style="color:var(--warn)">64%</div><div class="gauge"><i style="width:64%;background:var(--warn)"></i></div></div>
+              <div class="linecard"><div class="n">조립 1라인</div><div class="oee num" style="color:var(--crit)">42%</div><div class="gauge"><i style="width:42%;background:var(--crit)"></i></div></div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="banner">⚠ 재고 경고 3건 — SUS-304(180/250), 볼트 M8(90/120), 윤활유(−12) · 발주 검토 필요</div>
+
+      <!-- 디자인 시스템 -->
+      <div class="ds">
+        <h2>디자인 시스템 · 토큰 & 컴포넌트</h2>
+        <div class="dsgrid">
+          <div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:8px">의미색 (상태)</p>
+            <div class="swatches">
+              <div class="sw"><i style="background:var(--primary)"></i><span>Primary</span><code>#2563EB</code></div>
+              <div class="sw"><i style="background:var(--ok)"></i><span>정상/완료</span><code>#22C55E</code></div>
+              <div class="sw"><i style="background:var(--warn)"></i><span>주의/대기</span><code>#F59E0B</code></div>
+              <div class="sw"><i style="background:var(--crit)"></i><span>이상/불량</span><code>#EF4444</code></div>
+              <div class="sw"><i style="background:var(--info)"></i><span>정보/이동</span><code>#38BDF8</code></div>
+              <div class="sw"><i style="background:var(--neutral)"></i><span>계획/취소</span><code>#64748B</code></div>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:8px">상태 Pill</p>
+            <div class="btnrow" style="gap:6px">
+              <span class="pill p-warn">대기</span><span class="pill p-info">진행</span><span class="pill p-ok">완료</span>
+              <span class="pill p-neutral">취소</span><span class="pill p-crit">불량</span><span class="pill p-warn">특채</span>
+            </div>
+            <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">버튼</p>
+            <div class="btnrow">
+              <button class="btn btn-pri">등록</button><button class="btn btn-sec">취소</button>
+              <button class="btn btn-ghost">더보기</button><button class="btn btn-danger">삭제</button>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:8px">타이포 스케일</p>
+            <div class="typescale">
+              <div><span class="tag">h1 / 30</span><span style="font-size:22px;font-weight:700">생산 통합 현황</span></div>
+              <div><span class="tag">h2 / 24</span><span style="font-size:18px;font-weight:600">작업지시</span></div>
+              <div><span class="tag">body / 14</span><span style="font-size:14px">브라켓 ASSY (RF-L)</span></div>
+              <div><span class="tag">num</span><span class="num" style="font-size:14px">1,200 · 92.4% · WO-260709</span></div>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:8px">현장 키오스크 (터치)</p>
+            <div class="kioskcard">
+              <div style="font-size:13px;color:var(--muted)">양품 수량 — WO-260709-014</div>
+              <div class="kv num">1,148</div>
+              <div class="kioskbtns"><button class="kbtn">−</button><button class="kbtn">＋</button><button class="kbtn go">등록</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="footer">SmartMES · 노선 A 범용 제조 MES — 디자인 시스템 목업 v1.0 · 다크/라이트 양대응 · 우상단 ◐ 테마로 전환</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('tgl');
+    btn.addEventListener('click', function () {
+      var root = document.documentElement;
+      var cur = root.getAttribute('data-theme');
+      if (!cur) { cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+      root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
