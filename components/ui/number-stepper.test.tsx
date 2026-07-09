@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { stepValue, NumberStepper } from "@/components/ui/number-stepper";
@@ -20,5 +20,14 @@ describe("NumberStepper", () => {
     render(<NumberStepper defaultValue={10} step={5} min={0} max={100} aria-label="양품 수량" />);
     await user.click(screen.getByRole("button", { name: "증가" }));
     expect(screen.getByRole("spinbutton")).toHaveValue(15);
+  });
+  it("입력을 비워도 0/min으로 스냅되지 않는다", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(<NumberStepper defaultValue={10} min={0} max={100} onValueChange={onValueChange} aria-label="수량" />);
+    const input = screen.getByRole("spinbutton");
+    await user.clear(input);
+    expect(input).toHaveValue(null); // 빈 number input은 null
+    expect(onValueChange).not.toHaveBeenCalledWith(0);
   });
 });
