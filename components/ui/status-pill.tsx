@@ -39,11 +39,14 @@ export function StatusPill({ tone, dot = true, className, children, ...props }: 
 
 // 상태 → tone 매핑 (design-tokens STATUS_COLOR와 일치)
 export function workOrderTone(status: "WAITING" | "RUNNING" | "DONE" | "CANCELLED"): Tone {
-  return { WAITING: "warn", RUNNING: "primary", DONE: "ok", CANCELLED: "neutral" }[status] as Tone;
+  const map: Record<typeof status, Tone> = { WAITING: "warn", RUNNING: "primary", DONE: "ok", CANCELLED: "neutral" };
+  return map[status];
 }
 export function equipmentTone(status: "RUN" | "STOP" | "REPAIR"): Tone {
-  return { RUN: "ok", STOP: "neutral", REPAIR: "crit" }[status] as Tone;
+  const map: Record<typeof status, Tone> = { RUN: "ok", STOP: "neutral", REPAIR: "crit" };
+  return map[status];
 }
 export function inspectionTone(status: "PASS" | "FAIL" | "SPECIAL"): Tone {
-  return { PASS: "ok", FAIL: "crit", SPECIAL: "warn" }[status] as Tone;
+  const map: Record<typeof status, Tone> = { PASS: "ok", FAIL: "crit", SPECIAL: "warn" };
+  return map[status];
 }
