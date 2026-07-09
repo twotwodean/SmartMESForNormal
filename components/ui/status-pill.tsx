@@ -28,14 +28,15 @@ export interface StatusPillProps
   dot?: boolean;
 }
 
-export function StatusPill({ tone, dot = true, className, children, ...props }: StatusPillProps) {
-  return (
-    <span className={cn(pillVariants({ tone }), className)} {...props}>
+export const StatusPill = React.forwardRef<HTMLSpanElement, StatusPillProps>(
+  ({ tone, dot = true, className, children, ...props }, ref) => (
+    <span ref={ref} className={cn(pillVariants({ tone }), className)} {...props}>
       {dot && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />}
       {children}
     </span>
-  );
-}
+  ),
+);
+StatusPill.displayName = "StatusPill";
 
 // 상태 → tone 매핑 (design-tokens STATUS_COLOR와 일치)
 export function workOrderTone(status: "WAITING" | "RUNNING" | "DONE" | "CANCELLED"): Tone {
@@ -48,5 +49,9 @@ export function equipmentTone(status: "RUN" | "STOP" | "REPAIR"): Tone {
 }
 export function inspectionTone(status: "PASS" | "FAIL" | "SPECIAL"): Tone {
   const map: Record<typeof status, Tone> = { PASS: "ok", FAIL: "crit", SPECIAL: "warn" };
+  return map[status];
+}
+export function stockTone(status: "NORMAL" | "BELOW" | "NEGATIVE"): Tone {
+  const map: Record<typeof status, Tone> = { NORMAL: "neutral", BELOW: "warn", NEGATIVE: "crit" };
   return map[status];
 }

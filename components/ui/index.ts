@@ -2,7 +2,7 @@ export { Button, buttonVariants, type ButtonProps } from "./button";
 export { IconButton, type IconButtonProps } from "./icon-button";
 export { Badge } from "./badge";
 export {
-  StatusPill, workOrderTone, equipmentTone, inspectionTone,
+  StatusPill, workOrderTone, equipmentTone, inspectionTone, stockTone,
   type Tone, type StatusPillProps,
 } from "./status-pill";
 export { Input } from "./input";

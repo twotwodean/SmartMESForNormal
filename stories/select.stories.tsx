@@ -40,3 +40,19 @@ export const Placeholder: Story = {
     </div>
   ),
 };
+
+export const Disabled: Story = {
+  render: () => (
+    <div style={{ width: 240 }}>
+      <Select disabled defaultValue="cnc">
+        <SelectTrigger>
+          <SelectValue placeholder="작업장 선택" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="cnc">CNC 1라인</SelectItem>
+          <SelectItem value="press">프레스 2라인</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  ),
+};
