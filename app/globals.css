@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 다크 기본 */
+:root {
+  --bg: #0B0F14; --surface: #121821; --elevated: #1A2230; --border: #26303D;
+  --text: #E2E8F0; --muted: #94A3B8; --faint: #64748B;
+  --primary: #3B82F6; --primary-fg: #FFFFFF; --primary-soft: #17233C;
+  --ok: #22C55E; --warn: #F59E0B; --crit: #EF4444; --info: #38BDF8; --neutral: #64748B;
+  --ok-soft: #12281B; --warn-soft: #2B2110; --crit-soft: #2B1414; --info-soft: #0E2430; --neutral-soft: #1B2430;
+  --shadow: none; --shadow-lg: 0 12px 32px rgba(0,0,0,.5);
+}
+
+/* 사용자가 명시적으로 라이트를 고르지 않았고 OS가 라이트면 라이트 */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #F6F8FA; --surface: #FFFFFF; --elevated: #FFFFFF; --border: #E3E8EF;
+    --text: #0F172A; --muted: #52607A; --faint: #8A97AD;
+    --primary: #2563EB; --primary-soft: #E5EDFF;
+    --ok: #16A34A; --warn: #D97706; --crit: #DC2626; --info: #0EA5E9; --neutral: #64748B;
+    --ok-soft: #DCFCE7; --warn-soft: #FEF3C7; --crit-soft: #FEE2E2; --info-soft: #E0F2FE; --neutral-soft: #EEF2F7;
+    --shadow: 0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.04); --shadow-lg: 0 8px 28px rgba(15,23,42,.12);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0B0F14; --surface: #121821; --elevated: #1A2230; --border: #26303D;
+  --text: #E2E8F0; --muted: #94A3B8; --faint: #64748B;
+  --primary: #3B82F6; --primary-fg: #FFFFFF; --primary-soft: #17233C;
+  --ok: #22C55E; --warn: #F59E0B; --crit: #EF4444; --info: #38BDF8; --neutral: #64748B;
+  --ok-soft: #12281B; --warn-soft: #2B2110; --crit-soft: #2B1414; --info-soft: #0E2430; --neutral-soft: #1B2430;
+  --shadow: none; --shadow-lg: 0 12px 32px rgba(0,0,0,.5);
+}
+
+:root[data-theme="light"] {
+  --bg: #F6F8FA; --surface: #FFFFFF; --elevated: #FFFFFF; --border: #E3E8EF;
+  --text: #0F172A; --muted: #52607A; --faint: #8A97AD;
+  --primary: #2563EB; --primary-fg: #FFFFFF; --primary-soft: #E5EDFF;
+  --ok: #16A34A; --warn: #D97706; --crit: #DC2626; --info: #0EA5E9; --neutral: #64748B;
+  --ok-soft: #DCFCE7; --warn-soft: #FEF3C7; --crit-soft: #FEE2E2; --info-soft: #E0F2FE; --neutral-soft: #EEF2F7;
+  --shadow: 0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.04); --shadow-lg: 0 8px 28px rgba(15,23,42,.12);
+}
+
+* { box-sizing: border-box; }
+html, body { padding: 0; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-pretendard), system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.num { font-variant-numeric: tabular-nums; }
