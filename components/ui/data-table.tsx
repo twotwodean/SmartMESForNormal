@@ -79,8 +79,15 @@ export function DataTable<TData, TValue>({
                 {hg.headers.map((header) => {
                   const canSort = header.column.getCanSort();
                   const sorted = header.column.getIsSorted();
+                  const ariaSort = canSort
+                    ? sorted === "asc"
+                      ? "ascending"
+                      : sorted === "desc"
+                        ? "descending"
+                        : "none"
+                    : undefined;
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} aria-sort={ariaSort}>
                       {header.isPlaceholder ? null : canSort ? (
                         <button
                           type="button"
