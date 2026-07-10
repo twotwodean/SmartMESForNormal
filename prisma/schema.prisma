@@ -39,6 +39,14 @@ model Item {
   lots        Lot[]
   invTxns     InventoryTxn[]
   inspections Inspection[]
+
+  purchaseOrders PurchaseOrder[]
+  goodsReceipts  GoodsReceipt[]
+  salesOrders    SalesOrder[]
+  shipments      Shipment[]
+  concessions    Concession[]
+  models         ProductModel[]
+  documents      DocumentRev[]
 }
 
 // BOM 다단: parent 1 - N child (qtyPer)
@@ -278,4 +286,100 @@ model AuditLog {
   entityId  String?
   createdAt DateTime @default(now())
   user      User?    @relation(fields: [userId], references: [id])
+}
+
+// ── 자재구매/영업 (MAT/SAL) ──
+// type: SUPPLIER | CUSTOMER
+model Supplier {
+  id             String          @id @default(cuid())
+  code           String          @unique
+  name           String
+  type           String          @default("SUPPLIER")
+  purchaseOrders PurchaseOrder[]
+  salesOrders    SalesOrder[]
+}
+
+// status: ORDERED | PARTIAL | RECEIVED | CANCELLED
+model PurchaseOrder {
+  id         String         @id @default(cuid())
+  code       String         @unique
+  supplierId String
+  itemId     String
+  qty        Int
+  status     String         @default("ORDERED")
+  orderedAt  DateTime       @default(now())
+  supplier   Supplier       @relation(fields: [supplierId], references: [id])
+  item       Item           @relation(fields: [itemId], references: [id])
+  receipts   GoodsReceipt[]
+}
+
+model GoodsReceipt {
+  id              String         @id @default(cuid())
+  code            String         @unique
+  purchaseOrderId String?
+  itemId          String
+  qty             Int
+  receivedAt      DateTime       @default(now())
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  item            Item           @relation(fields: [itemId], references: [id])
+}
+
+// status: ORDERED | PRODUCING | SHIPPED | CANCELLED
+model SalesOrder {
+  id         String     @id @default(cuid())
+  code       String     @unique
+  customerId String
+  itemId     String
+  qty        Int
+  status     String     @default("ORDERED")
+  dueDate    DateTime
+  createdAt  DateTime   @default(now())
+  customer   Supplier   @relation(fields: [customerId], references: [id])
+  item       Item       @relation(fields: [itemId], references: [id])
+  shipments  Shipment[]
+}
+
+// status: REQUESTED | SHIPPED | RETURNED
+model Shipment {
+  id           String      @id @default(cuid())
+  code         String      @unique
+  salesOrderId String?
+  itemId       String
+  qty          Int
+  status       String      @default("REQUESTED")
+  shippedAt    DateTime?
+  createdAt    DateTime    @default(now())
+  salesOrder   SalesOrder? @relation(fields: [salesOrderId], references: [id])
+  item         Item        @relation(fields: [itemId], references: [id])
+}
+
+// status: REQUESTED | APPROVED | REJECTED
+model Concession {
+  id          String    @id @default(cuid())
+  itemId      String
+  qty         Int
+  reason      String
+  status      String    @default("REQUESTED")
+  requestedAt DateTime  @default(now())
+  decidedAt   DateTime?
+  item        Item      @relation(fields: [itemId], references: [id])
+}
+
+model ProductModel {
+  id     String  @id @default(cuid())
+  itemId String
+  code   String  @unique
+  name   String
+  spec   String?
+  item   Item    @relation(fields: [itemId], references: [id])
+}
+
+model DocumentRev {
+  id        String   @id @default(cuid())
+  itemId    String?
+  name      String
+  rev       String   @default("A")
+  note      String?
+  createdAt DateTime @default(now())
+  item      Item?    @relation(fields: [itemId], references: [id])
 }
