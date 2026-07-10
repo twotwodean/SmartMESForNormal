@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { deriveStock } from "@/lib/domain/stock";
-import type { StockStatus } from "@/lib/domain/types";
+import type { StockStatus, InventoryTxnType } from "@/lib/domain/types";
 
 export interface StockRow {
   itemId: string;
@@ -34,4 +34,14 @@ export async function listStock(): Promise<StockRow[]> {
 /** 품목 수불 이력(최신순) */
 export async function listTxns(itemId: string) {
   return prisma.inventoryTxn.findMany({ where: { itemId }, orderBy: { createdAt: "desc" } });
+}
+
+export interface CreateTxnInput {
+  itemId: string;
+  type: InventoryTxnType; // IN|OUT|MOVE|ADJUST|PRODUCE|CONSUME
+  qty: number;            // 부호 포함(입고/생산 +, 출고/소비 -). ADJUST는 그대로.
+  ref?: string;
+}
+export async function createTxn(input: CreateTxnInput) {
+  return prisma.inventoryTxn.create({ data: { itemId: input.itemId, type: input.type, qty: input.qty, ref: input.ref } });
 }
