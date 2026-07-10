@@ -100,10 +100,14 @@ function SalesInner({ orders, shipments, customers, items }: SalesInnerProps) {
       toast({ title: "납기를 선택하세요", tone: "crit" });
       return;
     }
+    // 로컬 자정을 그대로 UTC 자정으로 보내 시간대에 따른 하루 밀림(off-by-one) 방지
+    const dueDateUtc = new Date(
+      Date.UTC(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()),
+    ).toISOString();
     const res = await fetch("/api/sales-orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ customerId, itemId, qty: createQty, dueDate: dueDate.toISOString() }),
+      body: JSON.stringify({ customerId, itemId, qty: createQty, dueDate: dueDateUtc }),
     });
     if (res.ok) {
       toast({ title: "수주 등록됨", tone: "ok" });
