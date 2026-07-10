@@ -1,12 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { createHash } from "node:crypto";
+
+import { hashPassword } from "../lib/auth/password";
 
 const prisma = new PrismaClient();
-
-// R1-B에서 정식 해시로 교체. 지금은 결정적 sha256(데모용).
-function hash(pw: string): string {
-  return createHash("sha256").update(pw).digest("hex");
-}
 
 async function main() {
   // 멱등: 기존 데이터 정리(개발 seed)
@@ -27,9 +23,9 @@ async function main() {
 
   await prisma.user.createMany({
     data: [
-      { username: "admin", passwordHash: hash("admin123"), name: "관리자", role: "ADMIN" },
-      { username: "operator", passwordHash: hash("oper123"), name: "김현장", role: "OPERATOR" },
-      { username: "viewer", passwordHash: hash("view123"), name: "이조회", role: "VIEWER" },
+      { username: "admin", passwordHash: hashPassword("admin123"), name: "관리자", role: "ADMIN" },
+      { username: "operator", passwordHash: hashPassword("oper123"), name: "김현장", role: "OPERATOR" },
+      { username: "viewer", passwordHash: hashPassword("view123"), name: "이조회", role: "VIEWER" },
     ],
   });
 
