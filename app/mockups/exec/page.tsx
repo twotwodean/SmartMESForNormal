@@ -5,8 +5,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { GaugeTile } from "@/components/ui/gauge-tile";
 import { StatusPill } from "@/components/ui/status-pill";
 import { KPIS, LINES, ALARMS } from "@/lib/mock-data";
+import { getDashboard } from "@/lib/services/dashboard-service";
 
-export default function ExecDashboard() {
+export const dynamic = "force-dynamic";
+
+export default async function ExecDashboard() {
+  const dashboard = await getDashboard();
+  const stockWarnCount = dashboard.stockWarnings.length;
+
   return (
     <>
       <SectionHeader title="경영 현황" description="전사 요약 · 오늘 · 2공장 통합" />
@@ -16,19 +22,21 @@ export default function ExecDashboard() {
           <KPITile
             key={k.key}
             label={k.label}
-            value={k.value}
+            /* 재고 경고 타일만 실데이터, 나머지는 R2 지표 */
+            value={k.key === "stock" ? String(stockWarnCount) : k.value}
             unit={k.unit}
-            delta={k.delta}
-            direction={k.direction}
+            delta={k.key === "stock" ? undefined : k.delta}
+            direction={k.key === "stock" ? undefined : k.direction}
             upIsGood={k.upIsGood}
             tone={k.tone}
-            spark={k.spark}
+            spark={k.key === "stock" ? undefined : k.spark}
             note={k.note}
           />
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* R2: 실데이터 연동 예정 */}
         <Card>
           <CardHeader><CardTitle>라인별 설비종합효율</CardTitle></CardHeader>
           <CardContent className="flex flex-wrap justify-around gap-4">
@@ -38,6 +46,7 @@ export default function ExecDashboard() {
           </CardContent>
         </Card>
 
+        {/* R2: 실데이터 연동 예정 */}
         <Card>
           <CardHeader><CardTitle>주요 알람 요약</CardTitle><span className="ml-auto text-caption text-text-faint">활성 {ALARMS.length}</span></CardHeader>
           <CardContent className="flex flex-col gap-3">
