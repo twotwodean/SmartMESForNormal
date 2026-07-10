@@ -6,6 +6,14 @@ const prisma = new PrismaClient();
 
 async function main() {
   // 멱등: 기존 데이터 정리(개발 seed)
+  await prisma.documentRev.deleteMany();
+  await prisma.productModel.deleteMany();
+  await prisma.concession.deleteMany();
+  await prisma.shipment.deleteMany();
+  await prisma.salesOrder.deleteMany();
+  await prisma.goodsReceipt.deleteMany();
+  await prisma.purchaseOrder.deleteMany();
+  await prisma.supplier.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.alarm.deleteMany();
   await prisma.nonconformance.deleteMany();
@@ -141,8 +149,29 @@ async function main() {
     ],
   });
 
+  // 거래처
+  const sup = await prisma.supplier.create({ data: { code: "SUP-001", name: "대성금속", type: "SUPPLIER" } });
+  const cus = await prisma.supplier.create({ data: { code: "CUS-001", name: "한빛기계", type: "CUSTOMER" } });
+
+  // 발주(구매)
+  await prisma.purchaseOrder.create({ data: { code: "PO-2607-001", supplierId: sup.id, itemId: raw1.id, qty: 500, status: "ORDERED", orderedAt: new Date("2026-07-07") } });
+  const po2 = await prisma.purchaseOrder.create({ data: { code: "PO-2607-002", supplierId: sup.id, itemId: raw2.id, qty: 300, status: "PARTIAL", orderedAt: new Date("2026-07-08") } });
+  // 부분 입고(발주2)
+  await prisma.goodsReceipt.create({ data: { code: "GR-2607-001", purchaseOrderId: po2.id, itemId: raw2.id, qty: 200, receivedAt: new Date("2026-07-09") } });
+
+  // 수주(영업) + 출하요청
+  const so = await prisma.salesOrder.create({ data: { code: "SO-2607-001", customerId: cus.id, itemId: fin.id, qty: 200, status: "ORDERED", dueDate: new Date("2026-07-20") } });
+  await prisma.shipment.create({ data: { code: "SH-2607-001", salesOrderId: so.id, itemId: fin.id, qty: 120, status: "REQUESTED" } });
+
+  // 특채
+  await prisma.concession.create({ data: { itemId: fin.id, qty: 5, reason: "치수 경미 초과(고객 승인 요청)", status: "REQUESTED" } });
+
+  // 모델/문서
+  await prisma.productModel.create({ data: { itemId: fin.id, code: "PM-GB2500-A", name: "GB-2500 표준형", spec: "감속비 1:25" } });
+  await prisma.documentRev.create({ data: { itemId: fin.id, name: "GB-2500 조립도", rev: "B", note: "베어링 사양 변경" } });
+
   console.log(
-    "seed 완료: 사용자 3, 품목 4, 작업장 2, 공정 3, Routing 1, 계획 1, WO 1, Lot 2, 재고txn 5, 불량코드 5, 검사 3, 부적합 1, 정비 2+1, 알람 3",
+    "seed 완료: 사용자 3, 품목 4, 작업장 2, 공정 3, Routing 1, 계획 1, WO 1, Lot 2, 재고txn 5, 불량코드 5, 검사 3, 부적합 1, 정비 2+1, 알람 3, 거래처 2, 발주 2, 입고 1, 수주 1, 출하 1, 특채 1, 모델 1, 문서 1",
   );
 }
 
