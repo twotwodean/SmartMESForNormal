@@ -8,6 +8,7 @@ import { Breadcrumb, type Crumb } from "@/components/ui/breadcrumb";
 import { ConnectionBadge } from "@/components/ui/connection-badge";
 import { Clock } from "@/components/ui/clock";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserMenu } from "@/components/app/user-menu";
 
 const NAV: SideNavGroup[] = [
   { label: "대시보드", items: [
@@ -53,7 +54,7 @@ export default function MockupsLayout({ children }: { children: React.ReactNode 
         />
       }
       topbar={
-        <Topbar right={<><ConnectionBadge status="connected" label="PLC 연결됨" /><Clock /><ThemeToggle /></>}>
+        <Topbar right={<><ConnectionBadge status="connected" label="PLC 연결됨" /><Clock /><UserMenu /><ThemeToggle /></>}>
           <Breadcrumb items={crumbs} />
         </Topbar>
       }
