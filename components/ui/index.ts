@@ -41,3 +41,8 @@ export { Clock, formatClock } from "./clock";
 export {
   AppShell, SidebarNav, Topbar, type SideNavItem, type SideNavGroup,
 } from "./app-shell";
+export { WorkOrderCard, type WorkOrderCardProps } from "./work-order-card";
+export { Stepper, stepStatus, type StepState, type StepperProps } from "./stepper";
+export { GaugeTile, gaugeOffset, type GaugeTileProps } from "./gauge-tile";
+export { KioskNumpad, applyKey, type KioskNumpadProps } from "./kiosk-numpad";
+export { GenealogyTree, countNodes, type GenealogyNode } from "./genealogy-tree";
