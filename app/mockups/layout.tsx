@@ -49,7 +49,7 @@ export default function MockupsLayout({ children }: { children: React.ReactNode 
         <SidebarNav
           brand={<><span className="grid h-6 w-6 place-items-center rounded-md bg-primary text-primary-fg">▤</span> 스마트 MES</>}
           groups={groups}
-          footer={<a href="/mockups/kiosk" className="block rounded-md border border-border px-3 py-2 text-center text-body-sm text-text-muted hover:text-text">🖥 현장 키오스크</a>}
+          footer={<a href="/kiosk" className="block rounded-md border border-border px-3 py-2 text-center text-body-sm text-text-muted hover:text-text">🖥 현장 키오스크</a>}
         />
       }
       topbar={
