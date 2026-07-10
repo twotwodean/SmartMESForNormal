@@ -6,6 +6,13 @@ const prisma = new PrismaClient();
 
 async function main() {
   // 멱등: 기존 데이터 정리(개발 seed)
+  await prisma.auditLog.deleteMany();
+  await prisma.alarm.deleteMany();
+  await prisma.nonconformance.deleteMany();
+  await prisma.inspection.deleteMany();
+  await prisma.maintenanceOrder.deleteMany();
+  await prisma.maintenanceSchedule.deleteMany();
+  await prisma.defectCode.deleteMany();
   await prisma.inventoryTxn.deleteMany();
   await prisma.lotGenealogy.deleteMany();
   await prisma.productionResult.deleteMany();
@@ -78,7 +85,65 @@ async function main() {
     ],
   });
 
-  console.log("seed 완료: 사용자 3, 품목 4, 작업장 2, 공정 3, Routing 1, 계획 1, WO 1, Lot 2, 재고txn 5");
+  // 불량코드
+  const defects = await Promise.all(
+    [
+      { code: "D-SCR", label: "스크래치" },
+      { code: "D-DIM", label: "치수불량" },
+      { code: "D-BUR", label: "버(Burr)" },
+      { code: "D-CRK", label: "크랙" },
+      { code: "D-ASM", label: "조립불량" },
+    ].map((d) => prisma.defectCode.create({ data: d })),
+  );
+
+  const cnc = await prisma.equipment.findUniqueOrThrow({ where: { code: "EQ-CNC-03" } });
+
+  // 검사(공정/출하) — fin 품목 기준
+  const insp1 = await prisma.inspection.create({
+    data: { type: "PROCESS", result: "PASS", itemId: fin.id, workOrderId: wo.id, qty: 100, defectQty: 3 },
+  });
+  await prisma.inspection.create({
+    data: { type: "SHIPPING", result: "SPECIAL", itemId: fin.id, qty: 80, defectQty: 5 },
+  });
+  const inspFail = await prisma.inspection.create({
+    data: { type: "PROCESS", result: "FAIL", itemId: fin.id, qty: 50, defectQty: 12 },
+  });
+
+  // 부적합(불량코드 연결)
+  await prisma.nonconformance.create({
+    data: { inspectionId: inspFail.id, defectCodeId: defects[1].id, qty: 12, action: "재작업 지시", status: "OPEN" },
+  });
+
+  // 설비 정비: 완료 1건 + 진행중 1건
+  await prisma.maintenanceOrder.create({
+    data: {
+      equipmentId: cnc.id, type: "REPAIR", status: "DONE", description: "주축 베어링 교체",
+      requestedAt: new Date("2026-07-08T09:00:00"), startedAt: new Date("2026-07-08T09:30:00"), finishedAt: new Date("2026-07-08T11:00:00"),
+    },
+  });
+  await prisma.maintenanceOrder.create({
+    data: {
+      equipmentId: cnc.id, type: "REPAIR", status: "IN_PROGRESS", description: "주축 과부하 점검",
+      requestedAt: new Date("2026-07-09T14:00:00"), startedAt: new Date("2026-07-09T14:20:00"),
+    },
+  });
+  // 예방점검 스케줄
+  await prisma.maintenanceSchedule.create({
+    data: { equipmentId: cnc.id, intervalDays: 30, nextDate: new Date("2026-08-08") },
+  });
+
+  // 알람
+  await prisma.alarm.createMany({
+    data: [
+      { tone: "crit", title: "CNC-03 설비 정지", message: "주축 과부하 — 정비 요청 발행됨" },
+      { tone: "warn", title: "원자재 SUS-304 안전재고 미달", message: "현재고 180 / 안전 250" },
+      { tone: "info", title: "WO-260709-013 완료 입고", message: "하우징 커버 800 EA" },
+    ],
+  });
+
+  console.log(
+    "seed 완료: 사용자 3, 품목 4, 작업장 2, 공정 3, Routing 1, 계획 1, WO 1, Lot 2, 재고txn 5, 불량코드 5, 검사 3, 부적합 1, 정비 2+1, 알람 3",
+  );
 }
 
 main()
