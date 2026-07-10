@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench, ScrollText } from "lucide-react";
+import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench, ScrollText, ShoppingCart } from "lucide-react";
 import { AppShell, SidebarNav, Topbar, type SideNavGroup } from "@/components/ui/app-shell";
 import { Breadcrumb, type Crumb } from "@/components/ui/breadcrumb";
 import { ConnectionBadge } from "@/components/ui/connection-badge";
@@ -25,6 +25,7 @@ const NAV: SideNavGroup[] = [
   ]},
   { label: "재고관리", items: [
     { label: "재고 현황", href: "/mockups/inventory", icon: Boxes },
+    { label: "구매/발주", href: "/mockups/procurement", icon: ShoppingCart },
   ]},
   { label: "설비관리", items: [
     { label: "설비정비", href: "/mockups/equipment", icon: Wrench },
@@ -42,6 +43,7 @@ const CRUMB: Record<string, Crumb[]> = {
   "/mockups/quality": [{ label: "품질·추적" }, { label: "품질검사" }],
   "/mockups/genealogy": [{ label: "품질·추적" }, { label: "Lot 추적" }],
   "/mockups/inventory": [{ label: "재고관리" }, { label: "재고 현황" }],
+  "/mockups/procurement": [{ label: "재고관리" }, { label: "구매/발주" }],
   "/mockups/equipment": [{ label: "설비관리" }, { label: "설비정비" }],
   "/mockups/audit": [{ label: "시스템" }, { label: "감사로그" }],
 };
