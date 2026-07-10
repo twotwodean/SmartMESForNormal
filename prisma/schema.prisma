@@ -16,6 +16,8 @@ model User {
   name         String
   role         String   @default("VIEWER")
   createdAt    DateTime @default(now())
+
+  auditLogs AuditLog[]
 }
 
 // ── 기준정보 (MST) ──
@@ -36,6 +38,7 @@ model Item {
   workOrders  WorkOrder[]
   lots        Lot[]
   invTxns     InventoryTxn[]
+  inspections Inspection[]
 }
 
 // BOM 다단: parent 1 - N child (qtyPer)
@@ -66,6 +69,9 @@ model Equipment {
   name         String
   workCenterId String?
   workCenter   WorkCenter? @relation(fields: [workCenterId], references: [id])
+
+  maintenanceOrders    MaintenanceOrder[]
+  maintenanceSchedules MaintenanceSchedule[]
 }
 
 model ProcessStage {
@@ -120,11 +126,12 @@ model WorkOrder {
   workCenterId String?
   createdAt    DateTime @default(now())
 
-  plan       ProductionPlan?    @relation(fields: [planId], references: [id])
-  item       Item               @relation(fields: [itemId], references: [id])
-  workCenter WorkCenter?        @relation(fields: [workCenterId], references: [id])
-  lots       Lot[]
-  results    ProductionResult[]
+  plan        ProductionPlan?    @relation(fields: [planId], references: [id])
+  item        Item               @relation(fields: [itemId], references: [id])
+  workCenter  WorkCenter?        @relation(fields: [workCenterId], references: [id])
+  lots        Lot[]
+  results     ProductionResult[]
+  inspections Inspection[]
 }
 
 // status: CREATED | IN_PROGRESS | INSPECTED | PASSED | FAILED | SHIPPED
@@ -144,6 +151,8 @@ model Lot {
   // 계보(자기참조 N-N via LotGenealogy)
   parentLinks LotGenealogy[] @relation("ChildSide")
   childLinks  LotGenealogy[] @relation("ParentSide")
+
+  inspections Inspection[]
 }
 
 model LotGenealogy {
@@ -182,4 +191,91 @@ model InventoryTxn {
 
   item Item @relation(fields: [itemId], references: [id])
   lot  Lot? @relation(fields: [lotId], references: [id])
+}
+
+// ── 품질 (QLT) ──
+model DefectCode {
+  id              String           @id @default(cuid())
+  code            String           @unique
+  label           String
+  nonconformances Nonconformance[]
+}
+
+// type: RECEIVING | PROCESS | SHIPPING
+// result: PASS | FAIL | SPECIAL
+model Inspection {
+  id          String   @id @default(cuid())
+  type        String
+  result      String
+  itemId      String
+  lotId       String?
+  workOrderId String?
+  qty         Int      @default(0)
+  defectQty   Int      @default(0)
+  inspectedAt DateTime @default(now())
+
+  item            Item             @relation(fields: [itemId], references: [id])
+  lot             Lot?             @relation(fields: [lotId], references: [id])
+  workOrder       WorkOrder?       @relation(fields: [workOrderId], references: [id])
+  nonconformances Nonconformance[]
+}
+
+// status: OPEN | ACTION | CLOSED
+model Nonconformance {
+  id           String   @id @default(cuid())
+  inspectionId String?
+  defectCodeId String?
+  qty          Int      @default(0)
+  action       String?
+  status       String   @default("OPEN")
+  createdAt    DateTime @default(now())
+
+  inspection Inspection? @relation(fields: [inspectionId], references: [id])
+  defectCode DefectCode? @relation(fields: [defectCodeId], references: [id])
+}
+
+// ── 설비보전 (EQP) ──
+// type: REPAIR | PREVENTIVE
+// status: REQUESTED | IN_PROGRESS | DONE
+model MaintenanceOrder {
+  id          String    @id @default(cuid())
+  equipmentId String
+  type        String
+  status      String    @default("REQUESTED")
+  description String?
+  requestedAt DateTime  @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+}
+
+model MaintenanceSchedule {
+  id           String    @id @default(cuid())
+  equipmentId  String
+  intervalDays Int
+  nextDate     DateTime
+  equipment    Equipment @relation(fields: [equipmentId], references: [id])
+}
+
+// ── 알람 ──
+// tone: crit | warn | info
+model Alarm {
+  id         String    @id @default(cuid())
+  tone       String
+  title      String
+  message    String?
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+}
+
+// ── 감사로그 (SEC) ──
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
 }
