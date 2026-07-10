@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── 인증/권한 (SEC) ──
+// role: ADMIN | OPERATOR | VIEWER
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("VIEWER")
+  createdAt    DateTime @default(now())
+}
+
+// ── 기준정보 (MST) ──
+// type: FINISHED | SEMI | RAW | SUB
+model Item {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  type        String
+  uom         String   @default("EA")
+  safetyStock Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  bomParents  BomComponent[]   @relation("BomParent")
+  bomChildren BomComponent[]   @relation("BomChild")
+  routings    Routing[]
+  plans       ProductionPlan[]
+  workOrders  WorkOrder[]
+  lots        Lot[]
+  invTxns     InventoryTxn[]
+}
+
+// BOM 다단: parent 1 - N child (qtyPer)
+model BomComponent {
+  id       String @id @default(cuid())
+  parentId String
+  childId  String
+  qtyPer   Float  @default(1)
+
+  parent Item @relation("BomParent", fields: [parentId], references: [id])
+  child  Item @relation("BomChild", fields: [childId], references: [id])
+
+  @@unique([parentId, childId])
+}
+
+model WorkCenter {
+  id         String        @id @default(cuid())
+  code       String        @unique
+  name       String
+  equipment  Equipment[]
+  routeSteps RoutingStep[]
+  workOrders WorkOrder[]
+}
+
+model Equipment {
+  id           String      @id @default(cuid())
+  code         String      @unique
+  name         String
+  workCenterId String?
+  workCenter   WorkCenter? @relation(fields: [workCenterId], references: [id])
+}
+
+model ProcessStage {
+  id         String        @id @default(cuid())
+  code       String        @unique
+  name       String
+  seq        Int           @default(0)
+  routeSteps RoutingStep[]
+}
+
+model Routing {
+  id     String        @id @default(cuid())
+  itemId String
+  name   String        @default("기본")
+  item   Item          @relation(fields: [itemId], references: [id])
+  steps  RoutingStep[]
+}
+
+model RoutingStep {
+  id             String  @id @default(cuid())
+  routingId      String
+  processStageId String
+  workCenterId   String?
+  seq            Int
+  stdTimeMin     Float   @default(0)
+
+  routing      Routing      @relation(fields: [routingId], references: [id])
+  processStage ProcessStage @relation(fields: [processStageId], references: [id])
+  workCenter   WorkCenter?  @relation(fields: [workCenterId], references: [id])
+}
+
+// ── 생산 실행 (PRD) ──
+model ProductionPlan {
+  id         String      @id @default(cuid())
+  code       String      @unique
+  itemId     String
+  qty        Int
+  planDate   DateTime
+  createdAt  DateTime    @default(now())
+  item       Item        @relation(fields: [itemId], references: [id])
+  workOrders WorkOrder[]
+}
+
+// status: WAITING | RUNNING | DONE | CANCELLED
+model WorkOrder {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  planId       String?
+  itemId       String
+  qty          Int
+  status       String   @default("WAITING")
+  workCenterId String?
+  createdAt    DateTime @default(now())
+
+  plan       ProductionPlan?    @relation(fields: [planId], references: [id])
+  item       Item               @relation(fields: [itemId], references: [id])
+  workCenter WorkCenter?        @relation(fields: [workCenterId], references: [id])
+  lots       Lot[]
+  results    ProductionResult[]
+}
+
+// status: CREATED | IN_PROGRESS | INSPECTED | PASSED | FAILED | SHIPPED
+model Lot {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  itemId      String
+  workOrderId String?
+  qty         Int      @default(0)
+  status      String   @default("CREATED")
+  createdAt   DateTime @default(now())
+
+  item      Item           @relation(fields: [itemId], references: [id])
+  workOrder WorkOrder?     @relation(fields: [workOrderId], references: [id])
+  invTxns   InventoryTxn[]
+
+  // 계보(자기참조 N-N via LotGenealogy)
+  parentLinks LotGenealogy[] @relation("ChildSide")
+  childLinks  LotGenealogy[] @relation("ParentSide")
+}
+
+model LotGenealogy {
+  id          String @id @default(cuid())
+  parentLotId String
+  childLotId  String
+
+  parentLot Lot @relation("ParentSide", fields: [parentLotId], references: [id])
+  childLot  Lot @relation("ChildSide", fields: [childLotId], references: [id])
+
+  @@unique([parentLotId, childLotId])
+}
+
+model ProductionResult {
+  id          String   @id @default(cuid())
+  workOrderId String
+  lotId       String?
+  goodQty     Int      @default(0)
+  defectQty   Int      @default(0)
+  downtimeMin Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id])
+}
+
+// 재고 트랜잭션 append-only. 현재고 = 파생 집계(deriveStock).
+// type: IN | OUT | MOVE | ADJUST | PRODUCE | CONSUME
+model InventoryTxn {
+  id        String   @id @default(cuid())
+  itemId    String
+  lotId     String?
+  qty       Int // 부호 포함(+입고/생산, -출고/소비)
+  type      String
+  ref       String?
+  createdAt DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id])
+  lot  Lot? @relation(fields: [lotId], references: [id])
+}
