@@ -9,6 +9,8 @@ import { StatusPill, workOrderTone } from "@/components/ui/status-pill";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/ui/stepper";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody } from "@/components/ui/drawer";
+import { toCsv } from "@/lib/domain/csv";
+import { downloadCsv } from "@/components/app/download-csv";
 import type { WorkOrderRow } from "@/lib/services/work-order-service";
 import type { WorkOrderStatus } from "@/lib/domain/types";
 
@@ -21,6 +23,15 @@ const stepFor = (s: WorkOrderStatus) => (s === "DONE" ? 4 : s === "RUNNING" ? 2 
 
 export function WorkOrdersClient({ rows }: { rows: WorkOrderRow[] }) {
   const [sel, setSel] = React.useState<WorkOrderRow | null>(null);
+  function exportCsv() {
+    downloadCsv("work-orders.csv", toCsv(rows, [
+      { key: "code", label: "지시번호" },
+      { key: "itemName", label: "품목" },
+      { key: "qty", label: "수량" },
+      { key: "status", label: "상태" },
+      { key: "center", label: "작업장" },
+    ]));
+  }
   const columns: ColumnDef<WorkOrderRow>[] = [
     { accessorKey: "code", header: "지시번호", cell: (c) => <span className="font-mono text-caption">{c.getValue<string>()}</span> },
     { accessorKey: "itemName", header: "품목" },
@@ -31,7 +42,11 @@ export function WorkOrdersClient({ rows }: { rows: WorkOrderRow[] }) {
   ];
   return (
     <>
-      <SectionHeader title="작업지시" description="실 데이터 · 리스트/칸반 · 클릭 시 상세" />
+      <SectionHeader
+        title="작업지시"
+        description="실 데이터 · 리스트/칸반 · 클릭 시 상세"
+        actions={<Button variant="secondary" size="sm" onClick={exportCsv}>CSV 내보내기</Button>}
+      />
       <Tabs defaultValue="list">
         <TabsList><TabsTrigger value="list">리스트</TabsTrigger><TabsTrigger value="kanban">칸반</TabsTrigger></TabsList>
         <TabsContent value="list"><DataTable columns={columns} data={rows} enableFilter filterPlaceholder="지시·품목 검색" /></TabsContent>

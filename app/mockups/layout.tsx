@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench } from "lucide-react";
+import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench, ScrollText } from "lucide-react";
 import { AppShell, SidebarNav, Topbar, type SideNavGroup } from "@/components/ui/app-shell";
 import { Breadcrumb, type Crumb } from "@/components/ui/breadcrumb";
 import { ConnectionBadge } from "@/components/ui/connection-badge";
@@ -29,6 +29,9 @@ const NAV: SideNavGroup[] = [
   { label: "설비관리", items: [
     { label: "설비정비", href: "/mockups/equipment", icon: Wrench },
   ]},
+  { label: "시스템", items: [
+    { label: "감사로그", href: "/mockups/audit", icon: ScrollText },
+  ]},
 ];
 
 const CRUMB: Record<string, Crumb[]> = {
@@ -40,6 +43,7 @@ const CRUMB: Record<string, Crumb[]> = {
   "/mockups/genealogy": [{ label: "품질·추적" }, { label: "Lot 추적" }],
   "/mockups/inventory": [{ label: "재고관리" }, { label: "재고 현황" }],
   "/mockups/equipment": [{ label: "설비관리" }, { label: "설비정비" }],
+  "/mockups/audit": [{ label: "시스템" }, { label: "감사로그" }],
 };
 
 export default function MockupsLayout({ children }: { children: React.ReactNode }) {
