@@ -92,3 +92,16 @@ export const INVENTORY: InventoryItem[] = [
   { code: "SF-HOUS-M3", name: "하우징 커버 M3", qty: 640, safety: 200, uom: "EA", status: "NORMAL" },
   { code: "FG-GB2500", name: "기어박스 GB-2500", qty: 120, safety: 50, uom: "EA", status: "NORMAL" },
 ];
+
+export interface DefectCode {
+  code: string;
+  label: string;
+}
+
+export const DEFECT_CODES: DefectCode[] = [
+  { code: "D-SCR", label: "스크래치" },
+  { code: "D-DIM", label: "치수불량" },
+  { code: "D-BUR", label: "버(Burr)" },
+  { code: "D-CRK", label: "크랙" },
+  { code: "D-ASM", label: "조립불량" },
+];
