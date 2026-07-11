@@ -35,6 +35,8 @@ export default defineConfig({
     url: `http://${HOST}:${PORT}/login`,
     reuseExistingServer: !isCI,
     timeout: 120_000,
-    env: { DATABASE_URL: E2E_DATABASE_URL, SESSION_SECRET: "e2e-secret" },
+    // E2E_INSECURE_COOKIE: 프로덕션 빌드(npm run start)를 http로 구동할 때 Secure 쿠키가
+    // Playwright API 컨텍스트에서 버려지는 문제 회피(테스트 전용, 운영 무관).
+    env: { DATABASE_URL: E2E_DATABASE_URL, SESSION_SECRET: "e2e-secret", E2E_INSECURE_COOKIE: "1" },
   },
 });

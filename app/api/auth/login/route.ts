@@ -47,7 +47,10 @@ export async function POST(req: Request) {
     sameSite: "lax",
     path: "/",
     maxAge: Math.floor(SESSION_TTL_MS / 1000),
-    secure: process.env.NODE_ENV === "production",
+    // 운영은 항상 Secure. 단 E2E(프로덕션 빌드를 http://127.0.0.1로 구동)에서는
+    // Playwright의 API 요청 컨텍스트가 http에서 Secure 쿠키를 버려 인증이 끊기므로,
+    // e2e 웹서버에서만 명시적 플래그로 Secure를 해제한다(운영 동작 불변).
+    secure: process.env.NODE_ENV === "production" && process.env.E2E_INSECURE_COOKIE !== "1",
   });
   return res;
 }
