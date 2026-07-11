@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { verifySession } from "@/lib/auth/session";
 
 const SESSION_COOKIE = "smartmes_session";
-const PROTECTED = ["/mockups", "/kiosk"];
+const PROTECTED = ["/mockups", "/kiosk", "/print"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -23,5 +23,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/mockups/:path*", "/kiosk/:path*", "/kiosk"],
+  matcher: ["/mockups/:path*", "/kiosk/:path*", "/kiosk", "/print/:path*"],
 };

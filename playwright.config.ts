@@ -3,6 +3,9 @@ import { defineConfig } from "@playwright/test";
 import { E2E_DATABASE_URL } from "./e2e/db-url";
 
 const PORT = 3001;
+// localhost는 ::1(IPv6)로 먼저 해석될 수 있어 dev 서버(IPv4 바인딩)와 어긋나면
+// apiRequestContext가 ECONNREFUSED ::1 로 간헐 실패한다. 127.0.0.1로 고정해 결정적 보장.
+const HOST = "127.0.0.1";
 const isCI = !!process.env.CI;
 
 export default defineConfig({
@@ -21,7 +24,7 @@ export default defineConfig({
     ["junit", { outputFile: "test-results/junit.xml" }],
   ],
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: `http://${HOST}:${PORT}`,
     // 로컬은 전량 녹화(테스트 영상 남기기), CI는 실패건만 보관(용량 절약)
     video: isCI ? "retain-on-failure" : "on",
     trace: isCI ? "on-first-retry" : "on",
@@ -29,7 +32,7 @@ export default defineConfig({
   },
   webServer: {
     command: isCI ? "npm run start" : "npm run dev",
-    url: `http://localhost:${PORT}/login`,
+    url: `http://${HOST}:${PORT}/login`,
     reuseExistingServer: !isCI,
     timeout: 120_000,
     env: { DATABASE_URL: E2E_DATABASE_URL, SESSION_SECRET: "e2e-secret" },
