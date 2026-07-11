@@ -1,12 +1,16 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusPill, type Tone } from "@/components/ui/status-pill";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { LotRef, LotTree } from "@/lib/services/lot-service";
+import type { Paginated } from "@/lib/api/pagination";
 
 function lotTone(status: string): Tone {
   if (status === "PASSED") return "ok";
@@ -25,7 +29,10 @@ function LotRow({ lot }: { lot: LotRef }) {
   );
 }
 
-export function GenealogyClient({ lots }: { lots: LotRef[] }) {
+export function GenealogyClient({ result, q }: { result: Paginated<LotRef>; q: string }) {
+  const router = useRouter();
+  const [search, setSearch] = React.useState(q);
+  const lots = result.rows;
   const [selCode, setSelCode] = React.useState<string | undefined>(lots[0]?.code);
   const [tree, setTree] = React.useState<LotTree | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -50,33 +57,79 @@ export function GenealogyClient({ lots }: { lots: LotRef[] }) {
     };
   }, [selCode]);
 
+  const goto = (page: number, nextQ: string) => {
+    const sp = new URLSearchParams();
+    if (nextQ) sp.set("q", nextQ);
+    sp.set("page", String(page));
+    router.push(`/mockups/genealogy?${sp.toString()}`);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    goto(1, search.trim());
+  };
+
   return (
     <>
-      <SectionHeader title="Lot 추적" description={`정·역 계보 · 총 ${lots.length}개 Lot`} />
+      <SectionHeader title="Lot 추적" description={`정·역 계보 · 총 ${result.total}개 Lot`} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.4fr]">
         <Card>
           <CardHeader><CardTitle>Lot 목록</CardTitle></CardHeader>
-          <CardContent className="flex flex-col gap-1 p-2">
-            {lots.length === 0 ? (
-              <EmptyState title="Lot이 없습니다" description="등록된 Lot이 없습니다." />
-            ) : (
-              lots.map((l) => (
-                <button
-                  key={l.id}
-                  type="button"
-                  onClick={() => setSelCode(l.code)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md border px-3 py-2 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                    selCode === l.code ? "border-primary bg-primary-soft" : "border-border bg-surface hover:bg-elevated",
-                  )}
+          <CardContent className="flex flex-col gap-3 p-2">
+            <form onSubmit={handleSearch} className="flex gap-2 px-2 pt-1">
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Lot 코드·품목 검색"
+                className="max-w-xs"
+              />
+              <Button type="submit" variant="secondary" size="sm">검색</Button>
+            </form>
+            <div className="flex flex-col gap-1">
+              {lots.length === 0 ? (
+                <EmptyState title="Lot이 없습니다" description="검색 조건에 맞는 Lot이 없습니다." />
+              ) : (
+                lots.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => setSelCode(l.code)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md border px-3 py-2 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                      selCode === l.code ? "border-primary bg-primary-soft" : "border-border bg-surface hover:bg-elevated",
+                    )}
+                  >
+                    <span className="font-mono text-caption text-text-muted">{l.code}</span>
+                    <span className="min-w-0 truncate text-body-sm text-text">{l.itemName}</span>
+                    <StatusPill tone={lotTone(l.status)} className="ml-auto">{l.status}</StatusPill>
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="flex items-center justify-between px-2 pb-1">
+              <span className="text-caption text-text-muted num">
+                {result.page} / {result.pageCount} 페이지 · 총 {result.total}건
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => goto(result.page - 1, q)}
+                  disabled={result.page <= 1}
                 >
-                  <span className="font-mono text-caption text-text-muted">{l.code}</span>
-                  <span className="min-w-0 truncate text-body-sm text-text">{l.itemName}</span>
-                  <StatusPill tone={lotTone(l.status)} className="ml-auto">{l.status}</StatusPill>
-                </button>
-              ))
-            )}
+                  이전
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => goto(result.page + 1, q)}
+                  disabled={result.page >= result.pageCount}
+                >
+                  다음
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

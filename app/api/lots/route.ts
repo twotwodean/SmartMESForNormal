@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api/guard";
-import { listLots } from "@/lib/services/lot-service";
+import { parsePageParams } from "@/lib/api/pagination";
+import { listLotsPaged } from "@/lib/services/lot-service";
 export const runtime = "nodejs";
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireUser();
   if ("res" in auth) return auth.res;
-  return NextResponse.json(await listLots());
+  const params = parsePageParams(new URL(req.url).searchParams, { pageSize: 20 });
+  return NextResponse.json(await listLotsPaged(params));
 }

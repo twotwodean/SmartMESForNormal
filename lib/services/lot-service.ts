@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { ancestors, descendants } from "@/lib/domain/genealogy";
+import { paginated, type PageParams, type Paginated } from "@/lib/api/pagination";
+import type { Prisma } from "@prisma/client";
 
 export interface LotRef {
   id: string;
@@ -19,6 +21,34 @@ export interface LotTree {
 export async function listLots(): Promise<LotRef[]> {
   const lots = await prisma.lot.findMany({ include: { item: true }, orderBy: { createdAt: "desc" } });
   return lots.map((l) => ({ id: l.id, code: l.code, itemName: l.item.name, status: l.status }));
+}
+
+/** Lot 목록(페이지네이션) — Lot 코드/품목코드/품목명 검색 */
+export async function listLotsPaged(params: PageParams): Promise<Paginated<LotRef>> {
+  const { page, pageSize, search } = params;
+  const where: Prisma.LotWhereInput = search
+    ? {
+        OR: [
+          { code: { contains: search, mode: "insensitive" } },
+          { item: { code: { contains: search, mode: "insensitive" } } },
+          { item: { name: { contains: search, mode: "insensitive" } } },
+        ],
+      }
+    : {};
+
+  const [rows, total] = await prisma.$transaction([
+    prisma.lot.findMany({
+      where,
+      include: { item: true },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.lot.count({ where }),
+  ]);
+
+  const mapped: LotRef[] = rows.map((l) => ({ id: l.id, code: l.code, itemName: l.item.name, status: l.status }));
+  return paginated(mapped, total, params);
 }
 
 /** code로 Lot 조회 + 계보(조상/후손) */

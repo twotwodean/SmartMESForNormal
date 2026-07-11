@@ -6,6 +6,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusPill, stockTone } from "@/components/ui/status-pill";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import {
@@ -17,7 +18,8 @@ import {
 import { ToastProvider, useToast } from "@/components/ui/toast";
 import { toCsv } from "@/lib/domain/csv";
 import { downloadCsv } from "@/components/app/download-csv";
-import type { StockRow } from "@/lib/services/inventory-service";
+import type { StockRow, TxnRow } from "@/lib/services/inventory-service";
+import type { Paginated } from "@/lib/api/pagination";
 import type { StockStatus, InventoryTxnType } from "@/lib/domain/types";
 
 const STATUS_LABEL: Record<StockStatus, string> = { NORMAL: "정상", BELOW: "미달", NEGATIVE: "음수" };
@@ -32,6 +34,57 @@ function InventoryInner({ rows }: { rows: StockRow[] }) {
   const [itemId, setItemId] = React.useState<string>(rows[0]?.itemId ?? "");
   const [type, setType] = React.useState<TxnFormType>("IN");
   const [qty, setQty] = React.useState(0);
+
+  // ========================================================================
+  // 수불 이력(품목별, 서버사이드 페이지네이션 - 클라이언트 재조회)
+  // ========================================================================
+  const [txnItemId, setTxnItemId] = React.useState<string>(rows[0]?.itemId ?? "");
+  const [txnSearchInput, setTxnSearchInput] = React.useState("");
+  const [txnQuery, setTxnQuery] = React.useState<{ page: number; search: string }>({ page: 1, search: "" });
+  const [txnResult, setTxnResult] = React.useState<Paginated<TxnRow> | null>(null);
+  const [txnLoading, setTxnLoading] = React.useState(false);
+
+  const fetchTxns = React.useCallback(async (id: string, page: number, search: string) => {
+    if (!id) {
+      setTxnResult(null);
+      return;
+    }
+    setTxnLoading(true);
+    try {
+      const sp = new URLSearchParams({ itemId: id, page: String(page) });
+      if (search) sp.set("q", search);
+      const res = await fetch(`/api/inventory/txns?${sp.toString()}`);
+      setTxnResult(res.ok ? await res.json() : null);
+    } finally {
+      setTxnLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void fetchTxns(txnItemId, txnQuery.page, txnQuery.search);
+  }, [txnItemId, txnQuery, fetchTxns]);
+
+  function onTxnItemChange(id: string) {
+    setTxnItemId(id);
+    setTxnSearchInput("");
+    setTxnQuery({ page: 1, search: "" });
+  }
+
+  function submitTxnSearch(e: React.FormEvent) {
+    e.preventDefault();
+    setTxnQuery({ page: 1, search: txnSearchInput.trim() });
+  }
+
+  function gotoTxnPage(page: number) {
+    setTxnQuery((q) => ({ ...q, page }));
+  }
+
+  const txnColumns: ColumnDef<TxnRow>[] = [
+    { accessorKey: "createdAt", header: "일시", cell: (c) => <span className="font-mono text-caption">{c.getValue<string>().slice(0, 19).replace("T", " ")}</span> },
+    { accessorKey: "type", header: "유형" },
+    { accessorKey: "qty", header: "수량", cell: (c) => { const v = c.getValue<number>(); return <span className={`num ${v < 0 ? "text-crit font-semibold" : "text-text"}`}>{v.toLocaleString()}</span>; } },
+    { accessorKey: "ref", header: "참조", cell: (c) => c.getValue<string | null>() ?? "-" },
+  ];
 
   const warn = rows.filter((r) => r.status !== "NORMAL").length;
   const columns: ColumnDef<StockRow>[] = [
@@ -72,6 +125,7 @@ function InventoryInner({ rows }: { rows: StockRow[] }) {
       setOpen(false);
       resetForm();
       router.refresh();
+      if (itemId === txnItemId) void fetchTxns(txnItemId, txnQuery.page, txnQuery.search);
     } else if (res.status === 403) {
       toast({ title: "권한 없음", description: "수불 등록은 작업자 이상만 가능합니다.", tone: "crit" });
     } else {
@@ -98,6 +152,64 @@ function InventoryInner({ rows }: { rows: StockRow[] }) {
         </div>
       )}
       <Card><CardContent><DataTable columns={columns} data={rows} enableFilter filterPlaceholder="품목 검색" /></CardContent></Card>
+
+      <Card>
+        <CardContent className="flex flex-col gap-3">
+          <h3 className="text-body-sm font-semibold text-text">수불 이력</h3>
+          <label className="flex max-w-sm flex-col gap-1.5">
+            <span className="text-body-sm text-text-muted">품목</span>
+            <Select value={txnItemId} onValueChange={onTxnItemChange}>
+              <SelectTrigger><SelectValue placeholder="품목 선택" /></SelectTrigger>
+              <SelectContent>
+                {rows.map((r) => (
+                  <SelectItem key={r.itemId} value={r.itemId}>{r.code} {r.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+          <form onSubmit={submitTxnSearch} className="flex gap-2">
+            <Input
+              value={txnSearchInput}
+              onChange={(e) => setTxnSearchInput(e.target.value)}
+              placeholder="참조·유형 검색"
+              className="max-w-xs"
+            />
+            <Button type="submit" variant="secondary" size="sm">검색</Button>
+          </form>
+          {txnLoading ? (
+            <p className="text-body-sm text-text-muted">불러오는 중…</p>
+          ) : txnResult ? (
+            <>
+              <DataTable columns={txnColumns} data={txnResult.rows} enablePagination={false} emptyMessage="수불 이력이 없습니다." />
+              <div className="flex items-center justify-between">
+                <span className="text-caption text-text-muted num">
+                  {txnResult.page} / {txnResult.pageCount} 페이지 · 총 {txnResult.total}건
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => gotoTxnPage(txnResult.page - 1)}
+                    disabled={txnResult.page <= 1}
+                  >
+                    이전
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => gotoTxnPage(txnResult.page + 1)}
+                    disabled={txnResult.page >= txnResult.pageCount}
+                  >
+                    다음
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="text-body-sm text-text-muted">품목을 선택하세요.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
         <DialogContent>
