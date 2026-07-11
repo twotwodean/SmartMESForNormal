@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { logError } from "@/lib/log";
 import { counterDelta } from "@/lib/plc/delta";
 import {
+  PLC_POLL_MS,
   READ_RANGES,
   getRegistersByKind,
   runStateLabel,
@@ -107,6 +108,14 @@ export async function ingest(reading: Reading, equipmentCode: string): Promise<v
   let pendingDefect = (prevState?.pendingDefect ?? 0) + defectDelta;
   let lastFlushAt = prevState?.lastFlushAt ?? null;
 
+  // PLC-5: 가동/정지 누적시간(초) — 이번 폴 주기 동안의 runState를 기준으로 누적한다.
+  // (offline/markOffline 시에는 데이터가 없으므로 여기서 누적하지 않는다.)
+  const pollSecs = PLC_POLL_MS / 1000;
+  const prevRunSecs = prevState?.runSecs ?? 0;
+  const prevDownSecs = prevState?.downSecs ?? 0;
+  const runSecs = runState === "RUN" ? prevRunSecs + pollSecs : prevRunSecs;
+  const downSecs = runState === "RUN" ? prevDownSecs : prevDownSecs + pollSecs;
+
   const now = new Date();
   const dueForFlush =
     lastFlushAt === null || now.getTime() - lastFlushAt.getTime() >= FLUSH_MS;
@@ -146,6 +155,8 @@ export async function ingest(reading: Reading, equipmentCode: string): Promise<v
     pendingGood,
     pendingDefect,
     lastFlushAt,
+    runSecs,
+    downSecs,
   };
 
   await prisma.equipmentState.upsert({

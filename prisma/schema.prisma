@@ -108,6 +108,10 @@ model EquipmentState {
   pendingDefect Int       @default(0)
   lastFlushAt   DateTime?
 
+  // PLC-5: 가동/정지 누적시간(초) — 실시간 OEE 산출용(가용성 분모)
+  runSecs  Float @default(0)
+  downSecs Float @default(0)
+
   equipment Equipment @relation(fields: [equipmentId], references: [id])
 }
 
