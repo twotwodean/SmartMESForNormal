@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { deriveStock } from "@/lib/domain/stock";
+import { paginated, type PageParams, type Paginated } from "@/lib/api/pagination";
+import type { Prisma } from "@prisma/client";
 import type { StockStatus, InventoryTxnType } from "@/lib/domain/types";
 
 export interface StockRow {
@@ -31,9 +33,60 @@ export async function listStock(): Promise<StockRow[]> {
   });
 }
 
-/** 품목 수불 이력(최신순) */
+/** 품목 수불 이력(최신순, 전체) — 내부 로직/테스트용. 화면 표시는 listTxnsPaged 사용. */
 export async function listTxns(itemId: string) {
   return prisma.inventoryTxn.findMany({ where: { itemId }, orderBy: { createdAt: "desc" } });
+}
+
+export interface TxnRow {
+  id: string;
+  itemId: string;
+  lotId: string | null;
+  type: string;
+  qty: number;
+  ref: string | null;
+  createdAt: string;
+}
+
+export interface ListTxnsParams extends PageParams {
+  itemId: string;
+}
+
+/** 품목 수불 이력(페이지네이션) — 참조(ref)/유형(type) 검색 */
+export async function listTxnsPaged(params: ListTxnsParams): Promise<Paginated<TxnRow>> {
+  const { itemId, page, pageSize, search } = params;
+  const where: Prisma.InventoryTxnWhereInput = {
+    itemId,
+    ...(search
+      ? {
+          OR: [
+            { ref: { contains: search, mode: "insensitive" } },
+            { type: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+
+  const [rows, total] = await prisma.$transaction([
+    prisma.inventoryTxn.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.inventoryTxn.count({ where }),
+  ]);
+
+  const mapped: TxnRow[] = rows.map((t) => ({
+    id: t.id,
+    itemId: t.itemId,
+    lotId: t.lotId,
+    type: t.type,
+    qty: t.qty,
+    ref: t.ref,
+    createdAt: t.createdAt.toISOString(),
+  }));
+  return paginated(mapped, total, { page, pageSize, search });
 }
 
 export interface CreateTxnInput {
