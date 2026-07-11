@@ -34,12 +34,12 @@ const ORDER_STATUS_LABEL: Record<WorkOrderStatus, string> = {
 };
 
 /** 컬럼(작업장)의 전체적인 라인 상태를 대표 설비 상태 하나로 요약한다: RUN > ALARM > IDLE > STOP 우선순위 */
-function summarizeLineTone(equipment: WipEquipment[]): { tone: Tone; label: string } {
-  if (equipment.length === 0) return { tone: "neutral", label: "설비 없음" };
-  if (equipment.some((e) => e.runState === "RUN")) return { tone: "ok", label: "가동" };
-  if (equipment.some((e) => e.runState === "ALARM")) return { tone: "crit", label: "알람" };
-  if (equipment.some((e) => e.runState === "IDLE")) return { tone: "warn", label: "대기" };
-  return { tone: "neutral", label: "정지" };
+function summarizeLineTone(equipment: WipEquipment[]): { tone: Tone; label: string; isAlarm: boolean } {
+  if (equipment.length === 0) return { tone: "neutral", label: "설비 없음", isAlarm: false };
+  if (equipment.some((e) => e.runState === "RUN")) return { tone: "ok", label: "가동", isAlarm: false };
+  if (equipment.some((e) => e.runState === "ALARM")) return { tone: "crit", label: "알람", isAlarm: true };
+  if (equipment.some((e) => e.runState === "IDLE")) return { tone: "warn", label: "대기", isAlarm: false };
+  return { tone: "neutral", label: "정지", isAlarm: false };
 }
 
 function EquipmentBadge({ eq }: { eq: WipEquipment }) {
@@ -89,15 +89,18 @@ function WipOrderCard({ order }: { order: WipOrder }) {
 
 function WipColumnCard({ column }: { column: WipColumn }) {
   const line = summarizeLineTone(column.equipment);
+  const isRunning = line.label === "가동";
   return (
-    <Card className="flex h-full w-72 shrink-0 flex-col">
+    <Card className={cn("flex h-full w-72 shrink-0 flex-col", line.isAlarm && "border-crit")}>
       <CardHeader className="flex-col items-stretch gap-1.5">
         <div className="flex w-full items-start justify-between gap-2">
           <div>
             <CardTitle>{column.workCenterName}</CardTitle>
             <p className="font-mono text-caption text-text-muted">{column.workCenterCode}</p>
           </div>
-          <StatusPill tone={line.tone}>{line.label}</StatusPill>
+          <StatusPill tone={line.tone} animate={line.isAlarm ? "blink" : isRunning ? "pulse" : "none"}>
+            {line.label}
+          </StatusPill>
         </div>
         {column.equipment.length > 0 && (
           <div className="flex flex-wrap gap-1">

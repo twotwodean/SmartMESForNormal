@@ -21,17 +21,32 @@ const pillVariants = cva(
   },
 );
 
+/** 상태 애니메이션: "pulse"는 점(dot)만 은은하게 맥동(가동 중), "blink"는 배지 전체를 점멸(알람 등 이상 상태 전용).
+ * 기본값 "none" — 기존 사용처의 시각은 변하지 않는다. */
+export type StatusPillAnimation = "pulse" | "blink" | "none";
+
 export interface StatusPillProps
   extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof pillVariants> {
   /** 색상 점 표시 여부 (기본 true) */
   dot?: boolean;
+  /** 상태 애니메이션 (기본 "none" = 애니메이션 없음, 기존 동작 유지) */
+  animate?: StatusPillAnimation;
 }
 
 export const StatusPill = React.forwardRef<HTMLSpanElement, StatusPillProps>(
-  ({ tone, dot = true, className, children, ...props }, ref) => (
-    <span ref={ref} className={cn(pillVariants({ tone }), className)} {...props}>
-      {dot && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />}
+  ({ tone, dot = true, animate = "none", className, children, ...props }, ref) => (
+    <span
+      ref={ref}
+      className={cn(pillVariants({ tone }), animate === "blink" && "animate-blink", className)}
+      {...props}
+    >
+      {dot && (
+        <span
+          aria-hidden
+          className={cn("h-1.5 w-1.5 rounded-full bg-current", animate === "pulse" && "animate-pulse-dot")}
+        />
+      )}
       {children}
     </span>
   ),

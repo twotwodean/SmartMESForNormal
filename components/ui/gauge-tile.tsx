@@ -47,6 +47,7 @@ export function GaugeTile({ label, value, unit = "%", tone = "primary", size = 1
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={offset}
+            className="motion-safe:transition-[stroke-dashoffset] motion-safe:duration-500 motion-safe:ease-out"
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
