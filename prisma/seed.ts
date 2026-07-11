@@ -32,6 +32,8 @@ async function main() {
   await prisma.routingStep.deleteMany();
   await prisma.routing.deleteMany();
   await prisma.bomComponent.deleteMany();
+  await prisma.plcReading.deleteMany();
+  await prisma.equipmentState.deleteMany();
   await prisma.equipment.deleteMany();
   await prisma.processStage.deleteMany();
   await prisma.workCenter.deleteMany();
