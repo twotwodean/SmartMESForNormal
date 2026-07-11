@@ -72,14 +72,23 @@ body {
   100% { background-color: transparent; }
 }
 
+/* VIS-6: 컨베이어 흐름(marching-ants). stroke-dasharray는 사용처(inline style)에서 지정하고,
+   여기서는 dashoffset만 흘려보내 점선이 흐름 방향(공정 순서: 왼쪽→오른쪽)으로 이동하는 것처럼 보이게 한다.
+   라인이 가동(RUN) 중이 아니면 이 클래스를 아예 붙이지 않아 점선이 정지 상태로 남는다. */
+@keyframes flow {
+  to { stroke-dashoffset: -16; }
+}
+
 .animate-pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
 .animate-blink { animation: blink 1s step-start infinite; }
 .animate-flash { animation: flash 0.8s ease-out 1; }
+.animate-flow { animation: flow 0.8s linear infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse-dot,
   .animate-blink,
-  .animate-flash {
+  .animate-flash,
+  .animate-flow {
     animation: none;
   }
 }
