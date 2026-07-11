@@ -82,6 +82,23 @@ npm run db:synth     # 기본 규모(품목 2,000 / 수불 5만 / 작업지시 2
 | `operator` | `oper123` | OPERATOR |
 | `viewer` | `view123` | VIEWER |
 
+## 배포 (Docker)
+
+컨테이너로 앱 + PostgreSQL 전체 스택을 기동할 수 있다 (`Dockerfile`은 `node:20-alpine` 멀티스테이지, `.next/standalone` 산출물 사용).
+
+```bash
+docker compose up -d --build   # postgres + app 기동 (app: http://localhost:3001)
+```
+
+- 앱 컨테이너는 시작 시 `docker-entrypoint.sh`가 `npx prisma migrate deploy`를 실행한 뒤 `node server.js`(standalone 서버)를 구동한다 — 별도로 마이그레이션을 돌릴 필요 없음.
+- 헬스체크: `GET /api/health` → DB에 `SELECT 1` 핑 후 `{"status":"ok","db":"up","ts":...}` (200) / 실패 시 `{"status":"degraded","db":"down"}` (503). `docker-compose.yml`의 `app` 서비스 healthcheck도 이 엔드포인트를 사용한다.
+- 시드 데이터는 최초 1회 수동 실행:
+  ```bash
+  docker compose exec app npx tsx prisma/seed.ts
+  ```
+- 환경변수: `docker-compose.yml`의 `app` 서비스는 `DATABASE_URL`(postgres 서비스명으로 접속), `SESSION_SECRET`(`${SESSION_SECRET:-change-me-in-prod}`, 운영에서는 반드시 강한 값으로 오버라이드), `NODE_ENV=production`을 주입한다.
+- **주의(Secure 쿠키)**: 세션 쿠키는 `NODE_ENV=production`에서 `Secure` 플래그가 붙는다. 컨테이너를 평문 HTTP로 그대로 노출하면 브라우저가 쿠키를 저장하지 않는다 — 실제 운영에서는 리버스 프록시(Nginx/Caddy 등)로 HTTPS를 앞단에 두고 그 뒤에서 이 컨테이너를 구동할 것.
+
 ### CI 게이트
 `.github/workflows/ci.yml` — `main`/`feature/**` push와 `main` 대상 PR에서 자동 실행:
 
