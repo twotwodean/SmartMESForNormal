@@ -27,13 +27,19 @@ export async function createConcession(input: { itemId: string; qty: number; rea
   return prisma.concession.create({ data: { itemId: input.itemId, qty: input.qty, reason: input.reason, status: "REQUESTED" } });
 }
 
-/** 승인/반려: REQUESTED 상태에서만 결정, decidedAt 기록 */
+/**
+ * 승인/반려: REQUESTED 상태에서만 결정, decidedAt 기록
+ * 조건부 updateMany로 원자적 게이트를 걸어 동시 결정 요청 시 한쪽만 반영되도록 한다.
+ */
 export async function decideConcession(id: string, approve: boolean) {
-  const c = await prisma.concession.findUnique({ where: { id } });
-  if (!c) throw new Error("특채 요청을 찾을 수 없습니다.");
-  if (c.status !== "REQUESTED") throw new Error("이미 처리된 요청입니다.");
-  return prisma.concession.update({
-    where: { id },
-    data: { status: approve ? "APPROVED" : "REJECTED", decidedAt: new Date() },
+  return prisma.$transaction(async (tx) => {
+    const c = await tx.concession.findUnique({ where: { id } });
+    if (!c) throw new Error("특채 요청을 찾을 수 없습니다.");
+    const upd = await tx.concession.updateMany({
+      where: { id, status: "REQUESTED" },
+      data: { status: approve ? "APPROVED" : "REJECTED", decidedAt: new Date() },
+    });
+    if (upd.count === 0) throw new Error("이미 처리된 요청입니다.");
+    return tx.concession.findUniqueOrThrow({ where: { id } });
   });
 }

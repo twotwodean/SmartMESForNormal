@@ -40,24 +40,39 @@ export async function createShipment(input: { salesOrderId: string; qty: number 
   return prisma.shipment.create({ data: { code, salesOrderId: so.id, itemId: so.itemId, qty: input.qty, status: "REQUESTED" } });
 }
 
-/** 출하등록: Shipment SHIPPED + shippedAt + 완제품 재고 OUT */
+/**
+ * 출하등록: Shipment SHIPPED + shippedAt + 완제품 재고 OUT
+ * 상태 전이는 조건부 updateMany로 원자적 게이트를 건 뒤에만 재고 차감을 수행한다
+ * (동시 호출로 인한 이중 출고 트랜잭션 생성을 방지).
+ */
 export async function shipShipment(id: string) {
   return prisma.$transaction(async (tx) => {
     const sh = await tx.shipment.findUnique({ where: { id } });
     if (!sh) throw new Error("출하를 찾을 수 없습니다.");
-    if (sh.status !== "REQUESTED") throw new Error("이미 처리된 출하입니다.");
+    const upd = await tx.shipment.updateMany({
+      where: { id, status: "REQUESTED" },
+      data: { status: "SHIPPED", shippedAt: new Date() },
+    });
+    if (upd.count === 0) throw new Error("이미 처리된 출하입니다.");
     await tx.inventoryTxn.create({ data: { itemId: sh.itemId, qty: -sh.qty, type: "OUT", ref: sh.code } });
-    return tx.shipment.update({ where: { id }, data: { status: "SHIPPED", shippedAt: new Date() } });
+    return tx.shipment.findUniqueOrThrow({ where: { id } });
   });
 }
 
-/** 반품: Shipment RETURNED + 재고 IN 복원 */
+/**
+ * 반품: Shipment RETURNED + 재고 IN 복원
+ * 상태 전이는 조건부 updateMany로 원자적 게이트를 건 뒤에만 재고 복원을 수행한다.
+ */
 export async function returnShipment(id: string) {
   return prisma.$transaction(async (tx) => {
     const sh = await tx.shipment.findUnique({ where: { id } });
     if (!sh) throw new Error("출하를 찾을 수 없습니다.");
-    if (sh.status !== "SHIPPED") throw new Error("출하 완료건만 반품 가능합니다.");
+    const upd = await tx.shipment.updateMany({
+      where: { id, status: "SHIPPED" },
+      data: { status: "RETURNED" },
+    });
+    if (upd.count === 0) throw new Error("출하 완료건만 반품 가능합니다.");
     await tx.inventoryTxn.create({ data: { itemId: sh.itemId, qty: sh.qty, type: "IN", ref: `${sh.code}-RET` } });
-    return tx.shipment.update({ where: { id }, data: { status: "RETURNED" } });
+    return tx.shipment.findUniqueOrThrow({ where: { id } });
   });
 }
