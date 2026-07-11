@@ -128,14 +128,39 @@ function EquipmentNode({ eq, x, y }: { eq: ZoneEquipment; x: number; y: number }
   );
 }
 
-function ZoneFlowArrow({ x1, x2, y }: { x1: number; x2: number; y: number }) {
+type FlowState = "running" | "halted";
+
+/**
+ * VIS-6: zone 사이 공정 흐름 커넥터를 "컨베이어"처럼 흐르게 할지 판단한다.
+ * 업스트림(왼쪽) zone의 실시간 설비 상태로부터 흐름 여부를 유도한다 — 규칙:
+ *   1) zone에 설비가 없으면 → halted (흘려보낼 자재가 없음)
+ *   2) zone 내 설비 중 하나라도 온라인 + ALARM → halted (안전 우선: 알람 중엔 흐름을 멈춰 이상 상태를 강조)
+ *   3) 그 외 zone 내 설비 중 하나라도 온라인 + RUN → running (가동 중이므로 흐르는 것으로 표시)
+ *   4) 그 외(전부 STOP/IDLE 이거나 오프라인) → halted
+ */
+function zoneFlowState(zone: Zone): FlowState {
+  if (zone.equipment.length === 0) return "halted";
+  const hasOnlineAlarm = zone.equipment.some((eq) => eq.row?.online && eq.row.runState === "ALARM");
+  if (hasOnlineAlarm) return "halted";
+  const hasOnlineRun = zone.equipment.some((eq) => eq.row?.online && eq.row.runState === "RUN");
+  return hasOnlineRun ? "running" : "halted";
+}
+
+function ZoneFlowArrow({ x1, x2, y, flowState }: { x1: number; x2: number; y: number; flowState: FlowState }) {
+  const running = flowState === "running";
   return (
     <line
       x1={x1}
       y1={y}
       x2={x2}
       y2={y}
-      style={{ stroke: "var(--muted)", strokeWidth: 2 }}
+      style={{
+        stroke: running ? "var(--info)" : "var(--neutral)",
+        strokeWidth: 3,
+        strokeDasharray: "10 6",
+        opacity: running ? 1 : 0.45,
+      }}
+      className={running ? "animate-flow" : undefined}
       markerEnd="url(#floor-arrowhead)"
     />
   );
@@ -165,6 +190,19 @@ function Legend() {
       <span className="inline-flex items-center gap-1.5">
         <span aria-hidden className="animate-blink inline-block h-3 w-3 rounded-sm border" style={{ backgroundColor: "var(--crit-soft)", borderColor: "var(--crit)" }} />
         점멸 = 알람
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <svg aria-hidden width="28" height="10">
+          <line
+            x1="1"
+            y1="5"
+            x2="27"
+            y2="5"
+            className="animate-flow"
+            style={{ stroke: "var(--info)", strokeWidth: 3, strokeDasharray: "10 6" }}
+          />
+        </svg>
+        흐름 애니메이션 = 가동 중
       </span>
     </div>
   );
@@ -260,7 +298,12 @@ export function FloorClient({ initial, layout }: { initial: EquipmentStateRow[];
                       ))
                     )}
                     {i < zones.length - 1 && (
-                      <ZoneFlowArrow x1={zx + zoneWidth} x2={zx + zoneWidth + ZONE_GAP} y={arrowY} />
+                      <ZoneFlowArrow
+                        x1={zx + zoneWidth}
+                        x2={zx + zoneWidth + ZONE_GAP}
+                        y={arrowY}
+                        flowState={zoneFlowState(zone)}
+                      />
                     )}
                   </g>
                 );
