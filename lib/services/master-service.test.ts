@@ -6,6 +6,9 @@ import {
   createWorkCenter, deleteWorkCenter, createProcessStage, deleteProcessStage,
   listBom, addBomComponent, updateBomQty, removeBomComponent,
   listRoutings, createRouting, deleteRouting, addRoutingStep, removeRoutingStep,
+  listOperators, createOperator, updateOperator, deleteOperator,
+  listShifts, createShift, updateShift, deleteShift,
+  listDowntimeReasons, createDowntimeReason, updateDowntimeReason, deleteDowntimeReason,
 } from "@/lib/services/master-service";
 
 afterAll(() => { execSync("npm run db:seed", { stdio: "ignore" }); });
@@ -84,5 +87,63 @@ describe("master-service Routing", () => {
 
     await deleteRouting(routing.id);
     expect((await listRoutings(raw2.id)).find((r) => r.id === routing.id)).toBeUndefined();
+  });
+});
+
+describe("master-service Operator/Shift/DowntimeReason", () => {
+  it("작업자 생성/수정/삭제", async () => {
+    const op = await createOperator({ code: `OP-${Date.now().toString().slice(-6)}`, name: "테스트작업자" });
+    const up = await updateOperator(op.id, { name: "수정작업자", active: false });
+    expect(up.name).toBe("수정작업자");
+    expect(up.active).toBe(false);
+    await deleteOperator(op.id);
+    expect((await listOperators()).find((r) => r.id === op.id)).toBeUndefined();
+  });
+  it("작업자 중복 코드는 에러", async () => {
+    await expect(createOperator({ code: "OP-001", name: "중복" })).rejects.toThrow("이미 존재");
+  });
+
+  it("근무조 생성/수정/삭제", async () => {
+    const sh = await createShift({ code: `SH-${Date.now().toString().slice(-6)}`, name: "테스트근무조" });
+    const up = await updateShift(sh.id, { name: "수정근무조" });
+    expect(up.name).toBe("수정근무조");
+    await deleteShift(sh.id);
+    expect((await listShifts()).find((r) => r.id === sh.id)).toBeUndefined();
+  });
+  it("근무조 중복 코드는 에러", async () => {
+    await expect(createShift({ code: "DAY", name: "중복" })).rejects.toThrow("이미 존재");
+  });
+
+  it("정지사유 생성/수정/삭제", async () => {
+    const dr = await createDowntimeReason({ code: `DR-${Date.now().toString().slice(-6)}`, label: "테스트사유", category: "PLANNED" });
+    const up = await updateDowntimeReason(dr.id, { label: "수정사유", category: "UNPLANNED" });
+    expect(up.label).toBe("수정사유");
+    expect(up.category).toBe("UNPLANNED");
+    await deleteDowntimeReason(dr.id);
+    expect((await listDowntimeReasons()).find((r) => r.id === dr.id)).toBeUndefined();
+  });
+  it("정지사유 중복 코드는 에러", async () => {
+    await expect(createDowntimeReason({ code: "DR-1", label: "중복", category: "UNPLANNED" })).rejects.toThrow("이미 존재");
+  });
+
+  it("생산실적에서 참조되는 작업자·근무조·정지사유 삭제는 차단", async () => {
+    const wo = await prisma.workOrder.findFirstOrThrow({ where: { code: "WO-260709-011" } });
+    const operator = await prisma.operator.findFirstOrThrow({ where: { code: "OP-001" } });
+    const shift = await prisma.shift.findFirstOrThrow({ where: { code: "DAY" } });
+    const reason = await prisma.downtimeReason.findFirstOrThrow({ where: { code: "DR-5" } });
+
+    await prisma.productionResult.create({
+      data: {
+        workOrderId: wo.id,
+        goodQty: 1,
+        operatorId: operator.id,
+        shiftId: shift.id,
+        downtimeReasonId: reason.id,
+      },
+    });
+
+    await expect(deleteOperator(operator.id)).rejects.toThrow("사용 중");
+    await expect(deleteShift(shift.id)).rejects.toThrow("사용 중");
+    await expect(deleteDowntimeReason(reason.id)).rejects.toThrow("사용 중");
   });
 });

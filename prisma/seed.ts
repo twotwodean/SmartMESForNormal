@@ -26,6 +26,9 @@ async function main() {
   await prisma.inventoryTxn.deleteMany();
   await prisma.lotGenealogy.deleteMany();
   await prisma.productionResult.deleteMany();
+  await prisma.operator.deleteMany();
+  await prisma.shift.deleteMany();
+  await prisma.downtimeReason.deleteMany();
   await prisma.lot.deleteMany();
   await prisma.workOrder.deleteMany();
   await prisma.productionPlan.deleteMany();
@@ -94,6 +97,35 @@ async function main() {
       { itemId: raw2.id, qty: 300, type: "IN", ref: "GR-INIT" },
       { itemId: semi.id, lotId: lotSemi.id, qty: 450, type: "PRODUCE", ref: "WO-260709-011" },
       { itemId: fin.id, qty: 120, type: "PRODUCE", ref: "WO-PREV" },
+    ],
+  });
+
+  // 작업자
+  await prisma.operator.createMany({
+    data: [
+      { code: "OP-001", name: "김작업" },
+      { code: "OP-002", name: "이작업" },
+      { code: "OP-003", name: "박작업" },
+    ],
+  });
+
+  // 근무조
+  await prisma.shift.createMany({
+    data: [
+      { code: "DAY", name: "주간" },
+      { code: "NIGHT", name: "야간" },
+    ],
+  });
+
+  // 정지사유(PLC stop_reason 코드표와 정렬)
+  await prisma.downtimeReason.createMany({
+    data: [
+      { code: "DR-1", label: "자재대기", category: "UNPLANNED" },
+      { code: "DR-2", label: "공구교환", category: "UNPLANNED" },
+      { code: "DR-3", label: "품질이상", category: "UNPLANNED" },
+      { code: "DR-4", label: "계획정지", category: "PLANNED" },
+      { code: "DR-5", label: "고장", category: "UNPLANNED" },
+      { code: "DR-6", label: "기타", category: "UNPLANNED" },
     ],
   });
 
@@ -181,7 +213,7 @@ async function main() {
   await prisma.payment.create({ data: { invoiceId: invoice.id, amount: 500_000 } });
 
   console.log(
-    "seed 완료: 사용자 3, 품목 4, 작업장 2, 공정 3, Routing 1, 계획 1, WO 1, Lot 2, 재고txn 5, 불량코드 5, 검사 3, 부적합 1, 정비 2+1, 알람 3, 거래처 2, 발주 2, 입고 1, 수주 1, 출하 1, 특채 1, 모델 1, 문서 1, 청구 1, 수금 1",
+    "seed 완료: 사용자 3, 품목 4, 작업장 2, 공정 3, Routing 1, 계획 1, WO 1, Lot 2, 재고txn 5, 작업자 3, 근무조 2, 정지사유 6, 불량코드 5, 검사 3, 부적합 1, 정비 2+1, 알람 3, 거래처 2, 발주 2, 입고 1, 수주 1, 출하 1, 특채 1, 모델 1, 문서 1, 청구 1, 수금 1",
   );
 }
 
