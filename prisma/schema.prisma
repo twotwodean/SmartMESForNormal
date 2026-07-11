@@ -60,6 +60,7 @@ model BomComponent {
   child  Item @relation("BomChild", fields: [childId], references: [id])
 
   @@unique([parentId, childId])
+  @@index([childId]) // deleteItem: count BomComponent by childId
 }
 
 model WorkCenter {
@@ -109,6 +110,8 @@ model RoutingStep {
   routing      Routing      @relation(fields: [routingId], references: [id])
   processStage ProcessStage @relation(fields: [processStageId], references: [id])
   workCenter   WorkCenter?  @relation(fields: [workCenterId], references: [id])
+
+  @@index([routingId]) // routing steps fetched by routingId
 }
 
 // ── 생산 실행 (PRD) ──
@@ -140,6 +143,8 @@ model WorkOrder {
   lots        Lot[]
   results     ProductionResult[]
   inspections Inspection[]
+
+  @@index([itemId]) // MRP/lists filter workOrder by itemId
 }
 
 // status: CREATED | IN_PROGRESS | INSPECTED | PASSED | FAILED | SHIPPED
@@ -161,6 +166,8 @@ model Lot {
   childLinks  LotGenealogy[] @relation("ParentSide")
 
   inspections Inspection[]
+
+  @@index([createdAt]) // listLotsPaged: orderBy createdAt desc, skip/take
 }
 
 model LotGenealogy {
@@ -199,6 +206,8 @@ model InventoryTxn {
 
   item Item @relation(fields: [itemId], references: [id])
   lot  Lot? @relation(fields: [lotId], references: [id])
+
+  @@index([itemId, createdAt]) // listTxnsPaged: where itemId (+ordering), orderBy createdAt desc, skip/take
 }
 
 // ── 품질 (QLT) ──
@@ -286,6 +295,8 @@ model AuditLog {
   entityId  String?
   createdAt DateTime @default(now())
   user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([createdAt]) // listAuditLogs: orderBy createdAt desc, skip/take, count
 }
 
 // ── 자재구매/영업 (MAT/SAL) ──
@@ -323,6 +334,8 @@ model GoodsReceipt {
   receivedAt      DateTime       @default(now())
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
   item            Item           @relation(fields: [itemId], references: [id])
+
+  @@index([purchaseOrderId]) // receiptProgress: count/sum receipts by purchaseOrderId
 }
 
 // status: ORDERED | PRODUCING | SHIPPED | CANCELLED
@@ -353,6 +366,8 @@ model Shipment {
   salesOrder   SalesOrder? @relation(fields: [salesOrderId], references: [id])
   item         Item        @relation(fields: [itemId], references: [id])
   invoices     Invoice[]
+
+  @@index([salesOrderId]) // listShipments: join/filter by salesOrderId
 }
 
 // status: REQUESTED | APPROVED | REJECTED
@@ -407,4 +422,6 @@ model Payment {
   amount    Int
   paidAt    DateTime @default(now())
   invoice   Invoice  @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId]) // billing: sum payments by invoiceId
 }
