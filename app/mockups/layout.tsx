@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench, ScrollText, ShoppingCart, Truck, ShieldCheck, FileText, Calculator, Wallet } from "lucide-react";
+import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench, ScrollText, ShoppingCart, Truck, ShieldCheck, FileText, Calculator, Wallet, Database } from "lucide-react";
 import { AppShell, SidebarNav, Topbar, type SideNavGroup } from "@/components/ui/app-shell";
 import { Breadcrumb, type Crumb } from "@/components/ui/breadcrumb";
 import { ConnectionBadge } from "@/components/ui/connection-badge";
@@ -25,6 +25,7 @@ const NAV: SideNavGroup[] = [
     { label: "특채", href: "/mockups/concession", icon: ShieldCheck },
   ]},
   { label: "기준정보", items: [
+    { label: "기준정보 관리", href: "/mockups/master", icon: Database },
     { label: "모델/도면", href: "/mockups/catalog", icon: FileText },
   ]},
   { label: "재고관리", items: [
@@ -52,6 +53,7 @@ const CRUMB: Record<string, Crumb[]> = {
   "/mockups/quality": [{ label: "품질·추적" }, { label: "품질검사" }],
   "/mockups/genealogy": [{ label: "품질·추적" }, { label: "Lot 추적" }],
   "/mockups/concession": [{ label: "품질·추적" }, { label: "특채" }],
+  "/mockups/master": [{ label: "기준정보" }, { label: "기준정보 관리" }],
   "/mockups/catalog": [{ label: "기준정보" }, { label: "모델/도면" }],
   "/mockups/inventory": [{ label: "재고관리" }, { label: "재고 현황" }],
   "/mockups/procurement": [{ label: "재고관리" }, { label: "구매/발주" }],
