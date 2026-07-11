@@ -81,6 +81,42 @@ model Equipment {
 
   maintenanceOrders    MaintenanceOrder[]
   maintenanceSchedules MaintenanceSchedule[]
+  state                EquipmentState?
+  plcReadings          PlcReading[]
+}
+
+// ── PLC/Modbus 텔레메트리 (PLC-1) ──
+// 설비 실시간 상태(최신 스냅샷, 설비당 1행 업서트)
+// runState: STOP | RUN | IDLE | ALARM
+model EquipmentState {
+  id          String   @id @default(cuid())
+  equipmentId String   @unique
+  runState    String   @default("STOP")
+  stopReason  String?
+  goodCount   Int      @default(0)
+  defectCount Int      @default(0)
+  cycleTime   Float    @default(0)
+  temperature Float?
+  pressure    Float?
+  spindleRpm  Int?
+  loadPct     Int?
+  online      Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+}
+
+// PLC 텔레메트리 시계열(선택 샘플)
+model PlcReading {
+  id          String   @id @default(cuid())
+  equipmentId String
+  signal      String
+  value       Float
+  ts          DateTime @default(now())
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+
+  @@index([equipmentId, ts])
 }
 
 model ProcessStage {
