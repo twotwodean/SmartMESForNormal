@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench, ScrollText, ShoppingCart, Truck, ShieldCheck, FileText, Calculator, Wallet, Database, Activity, LayoutGrid, Tag, Map } from "lucide-react";
+import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench, ScrollText, ShoppingCart, Truck, ShieldCheck, FileText, Calculator, Wallet, Database, Activity, LayoutGrid, Tag, Map, MonitorSmartphone } from "lucide-react";
 import { AppShell, SidebarNav, Topbar, type SideNavGroup } from "@/components/ui/app-shell";
 import { Breadcrumb, type Crumb } from "@/components/ui/breadcrumb";
 import { ConnectionBadge } from "@/components/ui/connection-badge";
@@ -14,6 +14,7 @@ const NAV: SideNavGroup[] = [
   { label: "대시보드", items: [
     { label: "경영 현황", href: "/mockups/exec", icon: LayoutDashboard },
     { label: "관리 현황", href: "/mockups/manager", icon: LayoutDashboard },
+    { label: "Andon 보드", href: "/andon", icon: MonitorSmartphone },
   ]},
   { label: "생산관리", items: [
     { label: "작업지시", href: "/mockups/work-orders", icon: Factory },
