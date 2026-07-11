@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { PurchaseOrderCreateSchema } from "@/lib/api/schemas";
 import { listPurchaseOrders, createPurchaseOrder } from "@/lib/services/procurement-service";
 export const runtime = "nodejs";
 
@@ -12,12 +14,10 @@ export async function GET() {
 export async function POST(req: Request) {
   const auth = await requireRole("OPERATOR");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
-  if (!body?.supplierId || !body?.itemId || typeof body.qty !== "number") {
-    return NextResponse.json({ error: "supplierId·itemId·qty가 필요합니다." }, { status: 400 });
-  }
+  const p = await parseBody(req, PurchaseOrderCreateSchema);
+  if ("res" in p) return p.res;
   try {
-    const po = await createPurchaseOrder({ supplierId: body.supplierId, itemId: body.itemId, qty: body.qty });
+    const po = await createPurchaseOrder(p.data);
     return NextResponse.json(po, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });

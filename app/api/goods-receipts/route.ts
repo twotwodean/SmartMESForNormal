@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { GoodsReceiptCreateSchema } from "@/lib/api/schemas";
 import { receiveGoods } from "@/lib/services/procurement-service";
 import { audit } from "@/lib/services/audit-service";
 export const runtime = "nodejs";
@@ -7,12 +9,10 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   const auth = await requireRole("OPERATOR");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
-  if (!body?.purchaseOrderId || typeof body.qty !== "number") {
-    return NextResponse.json({ error: "purchaseOrderId·qty가 필요합니다." }, { status: 400 });
-  }
+  const p = await parseBody(req, GoodsReceiptCreateSchema);
+  if ("res" in p) return p.res;
   try {
-    const out = await receiveGoods({ purchaseOrderId: body.purchaseOrderId, qty: body.qty });
+    const out = await receiveGoods(p.data);
     await audit("GOODS_RECEIPT", "GoodsReceipt", out.receipt.id);
     return NextResponse.json(out, { status: 201 });
   } catch (e) {

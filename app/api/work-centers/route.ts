@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { WorkCenterCreateSchema } from "@/lib/api/schemas";
 import { listWorkCenters, createWorkCenter } from "@/lib/services/master-service";
 import { audit } from "@/lib/services/audit-service";
 export const runtime = "nodejs";
@@ -13,12 +15,10 @@ export async function GET() {
 export async function POST(req: Request) {
   const auth = await requireRole("ADMIN");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
-  if (typeof body?.code !== "string" || typeof body?.name !== "string") {
-    return NextResponse.json({ error: "code·name이 필요합니다." }, { status: 400 });
-  }
+  const p = await parseBody(req, WorkCenterCreateSchema);
+  if ("res" in p) return p.res;
   try {
-    const r = await createWorkCenter({ code: body.code, name: body.name });
+    const r = await createWorkCenter(p.data);
     await audit("CREATE", "WorkCenter", r.id);
     return NextResponse.json(r, { status: 201 });
   } catch (e) {

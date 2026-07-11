@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireUser, requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { ItemCreateSchema } from "@/lib/api/schemas";
 import { listItems, createItem } from "@/lib/services/master-service";
 import { audit } from "@/lib/services/audit-service";
-import type { ItemType } from "@/lib/domain/types";
 export const runtime = "nodejs";
-
-const ITEM_TYPES: ItemType[] = ["FINISHED", "SEMI", "RAW", "SUB"];
 
 export async function GET() {
   const auth = await requireUser();
@@ -16,25 +15,10 @@ export async function GET() {
 export async function POST(req: Request) {
   const auth = await requireRole("ADMIN");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
-  if (
-    typeof body?.code !== "string" ||
-    typeof body?.name !== "string" ||
-    typeof body?.type !== "string" ||
-    !ITEM_TYPES.includes(body.type as ItemType) ||
-    typeof body?.uom !== "string" ||
-    typeof body?.safetyStock !== "number"
-  ) {
-    return NextResponse.json({ error: "code·name·type·uom·safetyStock이 필요합니다." }, { status: 400 });
-  }
+  const p = await parseBody(req, ItemCreateSchema);
+  if ("res" in p) return p.res;
   try {
-    const r = await createItem({
-      code: body.code,
-      name: body.name,
-      type: body.type as ItemType,
-      uom: body.uom,
-      safetyStock: body.safetyStock,
-    });
+    const r = await createItem(p.data);
     await audit("CREATE", "Item", r.id);
     return NextResponse.json(r, { status: 201 });
   } catch (e) {

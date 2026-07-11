@@ -1,26 +1,18 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { ItemUpdateSchema } from "@/lib/api/schemas";
 import { updateItem, deleteItem } from "@/lib/services/master-service";
 import { audit } from "@/lib/services/audit-service";
-import type { ItemType } from "@/lib/domain/types";
 export const runtime = "nodejs";
-
-const ITEM_TYPES: ItemType[] = ["FINISHED", "SEMI", "RAW", "SUB"];
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireRole("ADMIN");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
-  if (body?.type != null && !ITEM_TYPES.includes(body.type as ItemType)) {
-    return NextResponse.json({ error: "type이 올바르지 않습니다." }, { status: 400 });
-  }
+  const p = await parseBody(req, ItemUpdateSchema);
+  if ("res" in p) return p.res;
   try {
-    const r = await updateItem(params.id, {
-      name: typeof body?.name === "string" ? body.name : undefined,
-      type: typeof body?.type === "string" ? (body.type as ItemType) : undefined,
-      uom: typeof body?.uom === "string" ? body.uom : undefined,
-      safetyStock: typeof body?.safetyStock === "number" ? body.safetyStock : undefined,
-    });
+    const r = await updateItem(params.id, p.data);
     await audit("UPDATE", "Item", r.id);
     return NextResponse.json(r);
   } catch (e) {

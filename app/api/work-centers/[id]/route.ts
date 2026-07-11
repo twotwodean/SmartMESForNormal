@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { WorkCenterUpdateSchema } from "@/lib/api/schemas";
 import { updateWorkCenter, deleteWorkCenter } from "@/lib/services/master-service";
 import { audit } from "@/lib/services/audit-service";
 export const runtime = "nodejs";
@@ -7,11 +9,10 @@ export const runtime = "nodejs";
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireRole("ADMIN");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
+  const p = await parseBody(req, WorkCenterUpdateSchema);
+  if ("res" in p) return p.res;
   try {
-    const r = await updateWorkCenter(params.id, {
-      name: typeof body?.name === "string" ? body.name : undefined,
-    });
+    const r = await updateWorkCenter(params.id, p.data);
     await audit("UPDATE", "WorkCenter", r.id);
     return NextResponse.json(r);
   } catch (e) {
