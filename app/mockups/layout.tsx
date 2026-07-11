@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench, ScrollText, ShoppingCart, Truck, ShieldCheck, FileText } from "lucide-react";
+import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench, ScrollText, ShoppingCart, Truck, ShieldCheck, FileText, Calculator } from "lucide-react";
 import { AppShell, SidebarNav, Topbar, type SideNavGroup } from "@/components/ui/app-shell";
 import { Breadcrumb, type Crumb } from "@/components/ui/breadcrumb";
 import { ConnectionBadge } from "@/components/ui/connection-badge";
@@ -30,6 +30,7 @@ const NAV: SideNavGroup[] = [
   { label: "재고관리", items: [
     { label: "재고 현황", href: "/mockups/inventory", icon: Boxes },
     { label: "구매/발주", href: "/mockups/procurement", icon: ShoppingCart },
+    { label: "소요량(MRP)", href: "/mockups/mrp", icon: Calculator },
   ]},
   { label: "설비관리", items: [
     { label: "설비정비", href: "/mockups/equipment", icon: Wrench },
@@ -53,6 +54,7 @@ const CRUMB: Record<string, Crumb[]> = {
   "/mockups/catalog": [{ label: "기준정보" }, { label: "모델/도면" }],
   "/mockups/inventory": [{ label: "재고관리" }, { label: "재고 현황" }],
   "/mockups/procurement": [{ label: "재고관리" }, { label: "구매/발주" }],
+  "/mockups/mrp": [{ label: "재고관리" }, { label: "소요량(MRP)" }],
   "/mockups/equipment": [{ label: "설비관리" }, { label: "설비정비" }],
   "/mockups/sales": [{ label: "영업관리" }, { label: "수주/출하" }],
   "/mockups/audit": [{ label: "시스템" }, { label: "감사로그" }],
