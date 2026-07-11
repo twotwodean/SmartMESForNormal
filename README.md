@@ -82,6 +82,20 @@ npm run db:synth     # 기본 규모(품목 2,000 / 수불 5만 / 작업지시 2
 | `operator` | `oper123` | OPERATOR |
 | `viewer` | `view123` | VIEWER |
 
+## PLC 연동 (Modbus)
+
+실 PLC 없이도 Modbus/TCP 연동을 end-to-end로 검증할 수 있도록 시뮬레이터(서버)와 폴러(클라이언트)를 제공한다. 데이터맵(레지스터 주소·타입·스케일)은 `lib/plc/datamap.ts`가 단일 진실원(SSOT)이며, `docs/PLC_데이터맵_Modbus_v1.0.md`와 1:1로 일치한다.
+
+```bash
+npm run plc:sim     # Modbus/TCP 서버(시뮬레이터) 기동 — 포트 5020, Unit 1(EQ-CNC-03)·2(EQ-ASM-01)
+npm run plc:poll     # 폴러 기동 — 시뮬레이터(또는 실 PLC)를 주기적으로 읽어 DB에 적재
+```
+- `npm run plc:sim`은 레지스터 값을 현실적으로 변동시킨다(대부분 RUN, 간헐 IDLE/STOP, 희귀 ALARM; RUN 중 양품수 증가·간헐 불량·온도/압력/회전수 변동).
+- `npm run plc:poll`은 PLC_POLL_MS 주기로 각 장비를 읽어 `EquipmentState`를 업서트하고, 온도 샘플을 `PlcReading`에 스로틀 기록, ALARM/EMO 전이 시 `Alarm`을 생성한다. 읽기 타임아웃/에러는 해당 장비만 `online=false`로 표기하고 다음 주기를 계속한다.
+- 한 번만 폴링하고 종료하려면 `PLC_POLL_ONCE=1 npm run plc:poll` (테스트/CI용).
+- env: `PLC_HOST`(기본 `127.0.0.1`) · `PLC_PORT`(기본 `5020`) · `PLC_POLL_MS`(기본 `1000`) · `PLC_TIMEOUT_MS`(기본 `2000`).
+- **운영 PLC 전환**: 코드 변경 없이 `PLC_HOST`/`PLC_PORT`(및 필요 시 `lib/plc/datamap.ts`의 Unit ID)만 실 PLC 값으로 교체하면 된다. 레지스터 맵이 다르면 `docs/PLC_데이터맵_Modbus_v1.0.md` §3~§7과 `lib/plc/datamap.ts`만 함께 수정한다.
+
 ## 배포 (Docker)
 
 컨테이너로 앱 + PostgreSQL 전체 스택을 기동할 수 있다 (`Dockerfile`은 `node:20-alpine` 멀티스테이지, `.next/standalone` 산출물 사용).
