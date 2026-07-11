@@ -28,6 +28,7 @@ import type {
 const TYPE_LABEL: Record<MaintenanceType, string> = {
   REPAIR: "수리",
   PREVENTIVE: "예방",
+  PREDICTIVE: "예지보전",
 };
 
 const TYPE_OPTIONS: MaintenanceType[] = ["REPAIR", "PREVENTIVE"];

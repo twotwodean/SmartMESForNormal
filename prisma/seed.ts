@@ -21,6 +21,7 @@ async function main() {
   await prisma.nonconformance.deleteMany();
   await prisma.inspection.deleteMany();
   await prisma.maintenanceOrder.deleteMany();
+  await prisma.maintenanceRule.deleteMany();
   await prisma.maintenanceSchedule.deleteMany();
   await prisma.defectCode.deleteMany();
   await prisma.inventoryTxn.deleteMany();
@@ -176,6 +177,14 @@ async function main() {
     data: { equipmentId: cnc.id, intervalDays: 30, nextDate: new Date("2026-08-08") },
   });
 
+  // PdM-1: 예지보전 전역 기본 규칙(설비 무관 적용). 시뮬레이터 온도 20~60 범위와 정렬해 임계 55에서 데모 트립.
+  await prisma.maintenanceRule.createMany({
+    data: [
+      { equipmentId: null, signal: "temperature", op: "GT", threshold: 50, severity: "crit", description: "과열 예지" },
+      { equipmentId: null, signal: "load_pct", op: "GT", threshold: 80, severity: "warn", description: "고부하 예지" },
+    ],
+  });
+
   // 알람
   await prisma.alarm.createMany({
     data: [
@@ -213,7 +222,7 @@ async function main() {
   await prisma.payment.create({ data: { invoiceId: invoice.id, amount: 500_000 } });
 
   console.log(
-    "seed 완료: 사용자 3, 품목 4, 작업장 2, 공정 3, Routing 1, 계획 1, WO 1, Lot 2, 재고txn 5, 작업자 3, 근무조 2, 정지사유 6, 불량코드 5, 검사 3, 부적합 1, 정비 2+1, 알람 3, 거래처 2, 발주 2, 입고 1, 수주 1, 출하 1, 특채 1, 모델 1, 문서 1, 청구 1, 수금 1",
+    "seed 완료: 사용자 3, 품목 4, 작업장 2, 공정 3, Routing 1, 계획 1, WO 1, Lot 2, 재고txn 5, 작업자 3, 근무조 2, 정지사유 6, 불량코드 5, 검사 3, 부적합 1, 정비 2+1, 예지보전규칙 2, 알람 3, 거래처 2, 발주 2, 입고 1, 수주 1, 출하 1, 특채 1, 모델 1, 문서 1, 청구 1, 수금 1",
   );
 }
 

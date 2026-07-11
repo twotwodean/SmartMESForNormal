@@ -81,6 +81,7 @@ model Equipment {
 
   maintenanceOrders    MaintenanceOrder[]
   maintenanceSchedules MaintenanceSchedule[]
+  maintenanceRules     MaintenanceRule[]
   state                EquipmentState?
   plcReadings          PlcReading[]
 }
@@ -332,7 +333,7 @@ model Nonconformance {
 }
 
 // ── 설비보전 (EQP) ──
-// type: REPAIR | PREVENTIVE
+// type: REPAIR | PREVENTIVE | PREDICTIVE
 // status: REQUESTED | IN_PROGRESS | DONE
 model MaintenanceOrder {
   id          String    @id @default(cuid())
@@ -340,6 +341,7 @@ model MaintenanceOrder {
   type        String
   status      String    @default("REQUESTED")
   description String?
+  source      String? // 추적/중복방지 키. 예: "PLC:temperature", "SCHEDULE"
   requestedAt DateTime  @default(now())
   startedAt   DateTime?
   finishedAt  DateTime?
@@ -353,6 +355,20 @@ model MaintenanceSchedule {
   intervalDays Int
   nextDate     DateTime
   equipment    Equipment @relation(fields: [equipmentId], references: [id])
+}
+
+// PdM-1: 예지보전 임계 규칙(전역 또는 설비별)
+// signal: temperature|load_pct|runtime_hours ; op: GT|GTE|LT|LTE ; severity: warn|crit
+model MaintenanceRule {
+  id          String     @id @default(cuid())
+  equipmentId String? // null = 전역 기본 규칙
+  signal      String
+  op          String     @default("GT")
+  threshold   Float
+  severity    String     @default("warn")
+  active      Boolean    @default(true)
+  description String?
+  equipment   Equipment? @relation(fields: [equipmentId], references: [id])
 }
 
 // ── 알람 ──
