@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench, ScrollText, ShoppingCart, Truck } from "lucide-react";
+import { LayoutDashboard, Factory, ClipboardList, GitBranch, Boxes, ClipboardCheck, Wrench, ScrollText, ShoppingCart, Truck, ShieldCheck, FileText } from "lucide-react";
 import { AppShell, SidebarNav, Topbar, type SideNavGroup } from "@/components/ui/app-shell";
 import { Breadcrumb, type Crumb } from "@/components/ui/breadcrumb";
 import { ConnectionBadge } from "@/components/ui/connection-badge";
@@ -22,6 +22,10 @@ const NAV: SideNavGroup[] = [
   { label: "품질·추적", items: [
     { label: "품질검사", href: "/mockups/quality", icon: ClipboardCheck },
     { label: "Lot 추적", href: "/mockups/genealogy", icon: GitBranch },
+    { label: "특채", href: "/mockups/concession", icon: ShieldCheck },
+  ]},
+  { label: "기준정보", items: [
+    { label: "모델/도면", href: "/mockups/catalog", icon: FileText },
   ]},
   { label: "재고관리", items: [
     { label: "재고 현황", href: "/mockups/inventory", icon: Boxes },
@@ -45,6 +49,8 @@ const CRUMB: Record<string, Crumb[]> = {
   "/mockups/production": [{ label: "생산관리" }, { label: "생산실적" }],
   "/mockups/quality": [{ label: "품질·추적" }, { label: "품질검사" }],
   "/mockups/genealogy": [{ label: "품질·추적" }, { label: "Lot 추적" }],
+  "/mockups/concession": [{ label: "품질·추적" }, { label: "특채" }],
+  "/mockups/catalog": [{ label: "기준정보" }, { label: "모델/도면" }],
   "/mockups/inventory": [{ label: "재고관리" }, { label: "재고 현황" }],
   "/mockups/procurement": [{ label: "재고관리" }, { label: "구매/발주" }],
   "/mockups/equipment": [{ label: "설비관리" }, { label: "설비정비" }],
