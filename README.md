@@ -39,13 +39,23 @@ npm test            # Vitest, 113개
 
 ### E2E 테스트 (Playwright)
 ```bash
-npm run test:e2e     # 헤드리스 전체 실행, 14개
-npm run test:e2e:ui  # UI 모드로 디버깅
+npm run test:e2e         # 헤드리스 전체 실행, 14개
+npm run test:e2e:ui      # UI 모드로 디버깅
+npm run test:e2e:headed  # 실제 브라우저 창을 띄워 실행
+npm run test:e2e:report  # 마지막 실행의 HTML 리포트(영상 임베드) 열기
 ```
 - 전용 DB(`e2e.db`)에서 동작 — `playwright.config.ts`의 `globalSetup`(`e2e/global-setup.ts`)이 실행 전 `DATABASE_URL="file:./e2e.db"`로 `prisma migrate deploy` + `db:seed`를 수행해 `dev.db`와 완전히 분리한다.
 - SQLite 특성상 `workers: 1`(직렬 실행)로 고정.
 - 로컬에서는 `npm run dev`를, CI에서는 (빌드 산출물 기반) `npm run start`를 웹서버로 자동 기동한다.
 - 커버리지: 로그인/리다이렉트(`auth`), 생산실적→재고(`production`), 입고·출하·반품(`logistics`), 청구·수금(`billing`), MRP 순소요(`mrp`), viewer 권한 차단(`rbac`).
+
+#### 영상 녹화 & 진행 로그
+- **영상**: 로컬 실행 시 테스트별로 `test-results/<테스트>/video.webm`에 전량 녹화(CI는 실패건만). 트레이스(`trace.zip`)·실패 스크린샷도 함께 저장 → `npm run test:e2e:report`의 HTML 리포트에서 재생·타임트래블 가능.
+- **진행 로그**(커스텀 리포터 `e2e/progress-reporter.ts`): 실행 중/후 진행사항을 파일로 남긴다.
+  - `test-results/e2e-progress.log` — 사람이 읽는 라인(타임스탬프·시작/통과/실패·소요시간·검증 단계·영상 경로).
+  - `test-results/e2e-progress.jsonl` — 기계 판독용(테스트별 status·durationMs·error·video/trace 경로).
+  - 이 외에 `test-results/results.json`(JSON), `test-results/junit.xml`(JUnit)도 생성.
+- `test-results/`·`playwright-report/`는 `.gitignore` 대상(산출물이라 커밋하지 않음).
 
 ### 합성 데이터 생성기
 ```bash
