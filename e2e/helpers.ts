@@ -20,7 +20,27 @@ export async function loginAs(page: Page, role: keyof typeof CREDENTIALS): Promi
   await page.goto("/mockups/manager");
 }
 
-/** baseline로 e2e 스키마 재시드(각 spec 독립성) */
+/** 동기 대기(외부 의존 없음) — 재시도 사이 백오프용 */
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
+ * baseline로 e2e 스키마 재시드(각 spec 독립성).
+ * SSE 스트림이 e2e DB를 조회하는 중 seed의 deleteMany가 겹치거나, 부하가 큰 머신에서
+ * tsx 프로세스 스폰이 간헐 실패할 수 있다. 오류를 표출(stdio:pipe)하고 최대 3회 재시도한다.
+ */
 export function reseed(): void {
-  execSync("npx tsx prisma/seed.ts", { stdio: "ignore", env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL } });
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      execSync("npx tsx prisma/seed.ts", { stdio: "pipe", env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL } });
+      return;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 3) sleepSync(500 * attempt);
+    }
+  }
+  const err = lastErr as { stderr?: Buffer } | undefined;
+  throw new Error(`reseed 실패(3회 시도): ${err?.stderr?.toString().slice(-500) ?? String(lastErr)}`);
 }
