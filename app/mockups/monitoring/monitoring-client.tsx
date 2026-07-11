@@ -8,8 +8,10 @@ import { KPITile } from "@/components/ui/kpi-tile";
 import { GaugeTile } from "@/components/ui/gauge-tile";
 import { StatusPill, type Tone } from "@/components/ui/status-pill";
 import { ConnectionBadge, type ConnectionStatus } from "@/components/ui/connection-badge";
+import { TrendChart } from "@/components/ui/trend-chart";
 import { useLiveEquipment, type LiveStatus } from "@/components/app/use-live-equipment";
 import { useFlashOnChange } from "@/components/app/use-flash-on-change";
+import { useSeriesBuffer } from "@/components/app/use-series-buffer";
 import { cn } from "@/lib/utils";
 import type { EquipmentStateRow, RunState } from "@/lib/services/equipment-state-service";
 
@@ -51,6 +53,8 @@ function EquipmentCard({ row }: { row: EquipmentStateRow }) {
   const isAlarm = row.runState === "ALARM";
   const isRunningOnline = row.runState === "RUN" && row.online;
   const goodFlash = useFlashOnChange(row.goodCount);
+  const temperatureSeries = useSeriesBuffer(row.temperature);
+  const loadSeries = useSeriesBuffer(row.loadPct);
 
   return (
     <Card className={cn("relative overflow-hidden", isAlarm && "border-crit")}>
@@ -139,6 +143,16 @@ function EquipmentCard({ row }: { row: EquipmentStateRow }) {
                 <span className="text-caption text-text-muted">스핀들</span>
               </div>
             </div>
+            {(row.temperature !== null || row.loadPct !== null) && (
+              <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4 sm:grid-cols-2">
+                {row.temperature !== null && (
+                  <TrendChart points={temperatureSeries} label="온도 추세" unit="℃" color="var(--info)" />
+                )}
+                {row.loadPct !== null && (
+                  <TrendChart points={loadSeries} label="부하 추세" unit="%" color="var(--warn)" />
+                )}
+              </div>
+            )}
           </>
         )}
       </CardContent>
