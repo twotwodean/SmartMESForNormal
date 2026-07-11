@@ -8,10 +8,18 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusPill, workOrderTone, type Tone } from "@/components/ui/status-pill";
 import { GaugeTile } from "@/components/ui/gauge-tile";
+import { ConnectionBadge, type ConnectionStatus } from "@/components/ui/connection-badge";
+import { useLiveDashboard, type LiveStatus } from "@/components/app/use-live-dashboard";
 import { KPIS, LINES } from "@/lib/mock-data";
 import type { DashboardData } from "@/lib/services/dashboard-service";
 import type { WorkOrderRow } from "@/lib/services/work-order-service";
 import type { WorkOrderStatus } from "@/lib/domain/types";
+
+const LIVE_BADGE: Record<LiveStatus, { status: ConnectionStatus; label: string }> = {
+  live: { status: "connected", label: "실시간" },
+  connecting: { status: "reconnecting", label: "연결 중" },
+  offline: { status: "disconnected", label: "오프라인" },
+};
 
 const STATUS_LABEL: Record<WorkOrderStatus, string> = {
   WAITING: "대기", RUNNING: "진행", DONE: "완료", CANCELLED: "취소",
@@ -28,7 +36,9 @@ const columns: ColumnDef<WorkOrderRow>[] = [
   { accessorKey: "center", header: "작업장" },
 ];
 
-export function ManagerClient({ dashboard, workOrders }: { dashboard: DashboardData; workOrders: WorkOrderRow[] }) {
+export function ManagerClient({ dashboard: initialDashboard, workOrders }: { dashboard: DashboardData; workOrders: WorkOrderRow[] }) {
+  const { data: dashboard, status } = useLiveDashboard(initialDashboard);
+  const badge = LIVE_BADGE[status];
   const stockWarnCount = dashboard.stockWarnings.length;
   const overallPpm = dashboard.quality.overallPpm;
   const ppmTone: Tone = overallPpm >= 10000 ? "crit" : overallPpm >= 3000 ? "warn" : "ok";
@@ -36,7 +46,11 @@ export function ManagerClient({ dashboard, workOrders }: { dashboard: DashboardD
 
   return (
     <>
-      <SectionHeader title="생산 통합 현황" description="2공장 · 실시간 POP · 오늘 08:00–14:32 기준" />
+      <SectionHeader
+        title="생산 통합 현황"
+        description="2공장 · 실시간 POP · 오늘 08:00–14:32 기준"
+        actions={<ConnectionBadge status={badge.status} label={badge.label} />}
+      />
 
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {KPIS.map((k) => {
