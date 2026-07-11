@@ -244,6 +244,9 @@ export const ProductionResultCreateSchema = z.object(
       .int("downtimeMin은 정수여야 합니다.")
       .min(0, "downtimeMin은 음수일 수 없습니다.")
       .optional(),
+    operatorId: z.string("operatorId는 문자열이어야 합니다.").optional(),
+    shiftId: z.string("shiftId는 문자열이어야 합니다.").optional(),
+    downtimeReasonId: z.string("downtimeReasonId는 문자열이어야 합니다.").optional(),
   },
   { message: BODY_INVALID },
 );
