@@ -34,6 +34,7 @@ export interface KPITileProps {
   tone?: Tone;
   spark?: number[];
   note?: string;
+  className?: string;
 }
 
 export function KPITile({
@@ -46,12 +47,13 @@ export function KPITile({
   tone = "primary",
   spark,
   note,
+  className,
 }: KPITileProps) {
   const positive = direction === "up" ? upIsGood : direction === "down" ? !upIsGood : true;
   const deltaColor = delta && direction ? (positive ? "text-ok" : "text-crit") : "text-text-muted";
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-border bg-surface p-4 shadow-card">
+    <div className={cn("relative overflow-hidden rounded-lg border border-border bg-surface p-4 shadow-card", className)}>
       <span className={cn("absolute inset-y-0 left-0 w-[3px]", STRIPE[tone])} aria-hidden />
       <div className="text-caption text-text-muted">{label}</div>
       <div className="mt-1.5 text-[27px] font-bold leading-none num">

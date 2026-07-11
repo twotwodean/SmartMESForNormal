@@ -53,3 +53,33 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 .num { font-variant-numeric: tabular-nums; }
+
+/* ── 상태 애니메이션 (VIS-2): 가동 pulse · 알람 blink · 값변경 flash ──
+   원칙(ISA-101): 평상시는 절제하고, 이상 상태(ALARM)만 뚜렷하게 움직인다.
+   prefers-reduced-motion: reduce 환경에서는 모든 반복 애니메이션을 끈다. */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.15); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes flash {
+  0% { background-color: var(--crit-soft); }
+  100% { background-color: transparent; }
+}
+
+.animate-pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+.animate-blink { animation: blink 1s step-start infinite; }
+.animate-flash { animation: flash 0.8s ease-out 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-dot,
+  .animate-blink,
+  .animate-flash {
+    animation: none;
+  }
+}

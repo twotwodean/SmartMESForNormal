@@ -9,6 +9,7 @@ import { GaugeTile } from "@/components/ui/gauge-tile";
 import { StatusPill, type Tone } from "@/components/ui/status-pill";
 import { ConnectionBadge, type ConnectionStatus } from "@/components/ui/connection-badge";
 import { useLiveEquipment, type LiveStatus } from "@/components/app/use-live-equipment";
+import { useFlashOnChange } from "@/components/app/use-flash-on-change";
 import { cn } from "@/lib/utils";
 import type { EquipmentStateRow, RunState } from "@/lib/services/equipment-state-service";
 
@@ -47,9 +48,18 @@ function GaugePlaceholder({ label }: { label: string }) {
 
 function EquipmentCard({ row }: { row: EquipmentStateRow }) {
   const tone = RUN_STATE_TONE[row.runState];
+  const isAlarm = row.runState === "ALARM";
+  const isRunningOnline = row.runState === "RUN" && row.online;
+  const goodFlash = useFlashOnChange(row.goodCount);
 
   return (
-    <Card>
+    <Card className={cn("relative overflow-hidden", isAlarm && "border-crit")}>
+      {isAlarm && (
+        <span
+          aria-hidden
+          className="animate-blink absolute inset-y-0 left-0 w-1 bg-crit"
+        />
+      )}
       <CardHeader className="flex-col items-stretch gap-1.5">
         <div className="flex w-full items-start justify-between gap-2">
           <div>
@@ -58,10 +68,19 @@ function EquipmentCard({ row }: { row: EquipmentStateRow }) {
             </CardTitle>
             <p className="text-caption text-text-muted">{row.workCenterName ?? "미배정 작업장"}</p>
           </div>
-          <StatusPill tone={tone}>{row.runStateLabel}</StatusPill>
+          <StatusPill tone={tone} animate={isAlarm ? "blink" : isRunningOnline ? "pulse" : "none"}>
+            {row.runStateLabel}
+          </StatusPill>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 text-caption text-text-muted">
-          <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", row.online ? "bg-ok" : "bg-neutral")} />
+          <span
+            aria-hidden
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              row.online ? "bg-ok" : "bg-neutral",
+              isRunningOnline && "animate-pulse-dot",
+            )}
+          />
           <span>{row.online ? "온라인" : "오프라인"}</span>
           <span>· {formatUpdatedAt(row.updatedAt)}</span>
           {row.runState === "STOP" && row.stopReason && <span>· 정지사유: {row.stopReason}</span>}
@@ -73,7 +92,13 @@ function EquipmentCard({ row }: { row: EquipmentStateRow }) {
         ) : (
           <>
             <div className="grid grid-cols-3 gap-3">
-              <KPITile label="양품" value={row.goodCount.toLocaleString()} unit="ea" tone="ok" />
+              <KPITile
+                label="양품"
+                value={row.goodCount.toLocaleString()}
+                unit="ea"
+                tone="ok"
+                className={goodFlash ? "animate-flash" : undefined}
+              />
               <KPITile
                 label="불량"
                 value={row.defectCount.toLocaleString()}
