@@ -18,6 +18,8 @@ import { NumberStepper } from "@/components/ui/number-stepper";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 import type { ItemType } from "@/lib/domain/types";
 import type { ItemRow, WorkCenterRow, ProcessStageRow } from "@/lib/services/master-service";
+import { BomTab } from "./bom-tab";
+import { RoutingTab } from "./routing-tab";
 
 const ITEM_TYPE_LABEL: Record<ItemType, string> = {
   FINISHED: "완제품",
@@ -308,6 +310,8 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
           <TabsTrigger value="items">품목</TabsTrigger>
           <TabsTrigger value="workCenters">작업장</TabsTrigger>
           <TabsTrigger value="processStages">공정</TabsTrigger>
+          <TabsTrigger value="bom">BOM</TabsTrigger>
+          <TabsTrigger value="routing">라우팅</TabsTrigger>
         </TabsList>
 
         <TabsContent value="items">
@@ -344,6 +348,14 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
               <DataTable columns={psColumns} data={processStages} enableFilter filterPlaceholder="코드·명 검색" />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="bom">
+          <BomTab items={items} />
+        </TabsContent>
+
+        <TabsContent value="routing">
+          <RoutingTab items={items} workCenters={workCenters} processStages={processStages} />
         </TabsContent>
       </Tabs>
 
