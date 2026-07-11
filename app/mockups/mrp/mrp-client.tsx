@@ -10,6 +10,8 @@ import { DataTable } from "@/components/ui/data-table";
 import { StatusPill, type Tone } from "@/components/ui/status-pill";
 import { Button } from "@/components/ui/button";
 import { KPITile } from "@/components/ui/kpi-tile";
+import { toCsv } from "@/lib/domain/csv";
+import { downloadCsv } from "@/components/app/download-csv";
 import type { MrpRow, MrpSuggestion } from "@/lib/services/mrp-service";
 
 const SUGGESTION_LABEL: Record<MrpSuggestion, string> = {
@@ -25,6 +27,22 @@ function suggestionTone(s: MrpSuggestion): Tone {
 
 export function MrpClient({ rows }: { rows: MrpRow[] }) {
   const router = useRouter();
+
+  function exportCsv() {
+    downloadCsv("mrp.csv", toCsv(
+      rows.map((r) => ({ ...r, suggestion: SUGGESTION_LABEL[r.suggestion] })),
+      [
+        { key: "code", label: "품목코드" },
+        { key: "name", label: "품목명" },
+        { key: "gross", label: "총소요" },
+        { key: "onHand", label: "현재고" },
+        { key: "safety", label: "안전재고" },
+        { key: "incoming", label: "입고예정" },
+        { key: "net", label: "순소요" },
+        { key: "suggestion", label: "제안" },
+      ],
+    ));
+  }
 
   const netCount = rows.filter((r) => r.net > 0).length;
   const purchaseCount = rows.filter((r) => r.suggestion === "PURCHASE").length;
@@ -61,9 +79,12 @@ export function MrpClient({ rows }: { rows: MrpRow[] }) {
         title="자재 · 소요량 산출(MRP)"
         description="수주·BOM 전개 대비 현재고·입고예정 → 순소요"
         actions={
-          <Button variant="secondary" size="sm" onClick={() => router.refresh()}>
-            새로고침
-          </Button>
+          <>
+            <Button variant="secondary" size="sm" onClick={exportCsv}>CSV</Button>
+            <Button variant="secondary" size="sm" onClick={() => router.refresh()}>
+              새로고침
+            </Button>
+          </>
         }
       />
 

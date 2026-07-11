@@ -17,6 +17,8 @@ import {
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { ToastProvider, useToast } from "@/components/ui/toast";
+import { toCsv } from "@/lib/domain/csv";
+import { downloadCsv } from "@/components/app/download-csv";
 import type { PurchaseOrderStatus } from "@/lib/domain/types";
 import type { PurchaseOrderRow, SupplierRow } from "@/lib/services/procurement-service";
 
@@ -115,6 +117,22 @@ function ProcurementInner({ orders, suppliers, items }: ProcurementInnerProps) {
     }
   }
 
+  function exportCsv() {
+    downloadCsv("purchase-orders.csv", toCsv(
+      orders.map((o) => ({ ...o, status: STATUS_LABEL[o.status], orderedAt: o.orderedAt.slice(0, 10) })),
+      [
+        { key: "code", label: "발주번호" },
+        { key: "supplierName", label: "거래처" },
+        { key: "itemName", label: "품목" },
+        { key: "qty", label: "발주량" },
+        { key: "received", label: "입고량" },
+        { key: "progress", label: "진척" },
+        { key: "status", label: "상태" },
+        { key: "orderedAt", label: "발주일" },
+      ],
+    ));
+  }
+
   const receivedCount = orders.filter((o) => o.status === "RECEIVED").length;
   const partialCount = orders.filter((o) => o.status === "PARTIAL").length;
   const orderedCount = orders.filter((o) => o.status === "ORDERED").length;
@@ -167,6 +185,8 @@ function ProcurementInner({ orders, suppliers, items }: ProcurementInnerProps) {
         title="구매 · 발주"
         description="발주 현황 · 입고 처리 · 발주대비 입고"
         actions={
+          <>
+          <Button variant="secondary" size="sm" onClick={exportCsv}>CSV</Button>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => setCreateOpen(true)}>발주 등록</Button>
@@ -212,6 +232,7 @@ function ProcurementInner({ orders, suppliers, items }: ProcurementInnerProps) {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </>
         }
       />
 

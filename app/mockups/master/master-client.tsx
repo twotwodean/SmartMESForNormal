@@ -16,6 +16,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Input } from "@/components/ui/input";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { ToastProvider, useToast } from "@/components/ui/toast";
+import { toCsv } from "@/lib/domain/csv";
+import { downloadCsv } from "@/components/app/download-csv";
 import type { ItemType } from "@/lib/domain/types";
 import type { ItemRow, WorkCenterRow, ProcessStageRow } from "@/lib/services/master-service";
 import { BomTab } from "./bom-tab";
@@ -150,6 +152,19 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
     },
   ];
 
+  function exportItemsCsv() {
+    downloadCsv("master-items.csv", toCsv(
+      items.map((i) => ({ ...i, type: ITEM_TYPE_LABEL[i.type] })),
+      [
+        { key: "code", label: "코드" },
+        { key: "name", label: "품목명" },
+        { key: "type", label: "유형" },
+        { key: "uom", label: "단위" },
+        { key: "safetyStock", label: "안전재고" },
+      ],
+    ));
+  }
+
   // ========================================================================
   // 작업장
   // ========================================================================
@@ -222,6 +237,13 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
       ),
     },
   ];
+
+  function exportWorkCentersCsv() {
+    downloadCsv("master-work-centers.csv", toCsv(workCenters, [
+      { key: "code", label: "코드" },
+      { key: "name", label: "명" },
+    ]));
+  }
 
   // ========================================================================
   // 공정
@@ -301,6 +323,14 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
     },
   ];
 
+  function exportProcessStagesCsv() {
+    downloadCsv("master-process-stages.csv", toCsv(processStages, [
+      { key: "code", label: "코드" },
+      { key: "name", label: "명" },
+      { key: "seq", label: "순서" },
+    ]));
+  }
+
   return (
     <>
       <SectionHeader title="기준정보 · 관리" description="품목 · 작업장 · 공정 등록/수정/삭제" />
@@ -318,7 +348,10 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
           <Card>
             <CardHeader className="justify-between">
               <CardTitle>품목 목록</CardTitle>
-              <Button size="sm" onClick={() => setItemCreateOpen(true)}>품목 등록</Button>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={exportItemsCsv}>CSV</Button>
+                <Button size="sm" onClick={() => setItemCreateOpen(true)}>품목 등록</Button>
+              </div>
             </CardHeader>
             <CardContent>
               <DataTable columns={itemColumns} data={items} enableFilter filterPlaceholder="코드·품목명 검색" />
@@ -330,7 +363,10 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
           <Card>
             <CardHeader className="justify-between">
               <CardTitle>작업장 목록</CardTitle>
-              <Button size="sm" onClick={() => setWcCreateOpen(true)}>작업장 등록</Button>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={exportWorkCentersCsv}>CSV</Button>
+                <Button size="sm" onClick={() => setWcCreateOpen(true)}>작업장 등록</Button>
+              </div>
             </CardHeader>
             <CardContent>
               <DataTable columns={wcColumns} data={workCenters} enableFilter filterPlaceholder="코드·명 검색" />
@@ -342,7 +378,10 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
           <Card>
             <CardHeader className="justify-between">
               <CardTitle>공정 목록</CardTitle>
-              <Button size="sm" onClick={() => setPsCreateOpen(true)}>공정 등록</Button>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={exportProcessStagesCsv}>CSV</Button>
+                <Button size="sm" onClick={() => setPsCreateOpen(true)}>공정 등록</Button>
+              </div>
             </CardHeader>
             <CardContent>
               <DataTable columns={psColumns} data={processStages} enableFilter filterPlaceholder="코드·명 검색" />

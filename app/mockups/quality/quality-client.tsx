@@ -16,6 +16,8 @@ import {
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { ToastProvider, useToast } from "@/components/ui/toast";
+import { toCsv } from "@/lib/domain/csv";
+import { downloadCsv } from "@/components/app/download-csv";
 import type { InspectionType, InspectionResult } from "@/lib/domain/types";
 import type { QualitySummary, InspectionRow, NonconformanceRow } from "@/lib/services/quality-service";
 
@@ -92,6 +94,39 @@ function QualityInner({ summary, inspections, nonconformances, items }: QualityI
       const d = await res.json().catch(() => ({}));
       toast({ title: "등록 실패", description: d.error ?? "", tone: "crit" });
     }
+  }
+
+  function exportInspectionsCsv() {
+    downloadCsv("inspections.csv", toCsv(
+      inspections.map((i) => ({
+        ...i,
+        type: TYPE_LABEL[i.type],
+        result: RESULT_LABEL[i.result],
+        inspectedAt: i.inspectedAt.slice(0, 10),
+      })),
+      [
+        { key: "type", label: "유형" },
+        { key: "result", label: "판정" },
+        { key: "itemName", label: "품목" },
+        { key: "qty", label: "수량" },
+        { key: "defectQty", label: "불량" },
+        { key: "ppm", label: "PPM" },
+        { key: "inspectedAt", label: "일자" },
+      ],
+    ));
+  }
+
+  function exportNonconformancesCsv() {
+    downloadCsv("nonconformances.csv", toCsv(
+      nonconformances.map((n) => ({ ...n, action: n.action ?? "-", createdAt: n.createdAt.slice(0, 10) })),
+      [
+        { key: "defectLabel", label: "부적합 유형" },
+        { key: "qty", label: "수량" },
+        { key: "status", label: "상태" },
+        { key: "action", label: "조치" },
+        { key: "createdAt", label: "등록일" },
+      ],
+    ));
   }
 
   const columns: ColumnDef<InspectionRow>[] = [
@@ -209,14 +244,20 @@ function QualityInner({ summary, inspections, nonconformances, items }: QualityI
       </div>
 
       <Card>
-        <CardHeader><CardTitle>검사 목록</CardTitle></CardHeader>
+        <CardHeader className="justify-between">
+          <CardTitle>검사 목록</CardTitle>
+          <Button variant="secondary" size="sm" onClick={exportInspectionsCsv}>CSV</Button>
+        </CardHeader>
         <CardContent>
           <DataTable columns={columns} data={inspections} enableFilter filterPlaceholder="품목 검색" />
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>부적합</CardTitle></CardHeader>
+        <CardHeader className="justify-between">
+          <CardTitle>부적합</CardTitle>
+          <Button variant="secondary" size="sm" onClick={exportNonconformancesCsv}>CSV</Button>
+        </CardHeader>
         <CardContent>
           {nonconformances.length === 0 ? (
             <p className="text-body-sm text-text-muted">부적합 없음</p>
