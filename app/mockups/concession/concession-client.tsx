@@ -16,6 +16,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { Input } from "@/components/ui/input";
 import { ToastProvider, useToast } from "@/components/ui/toast";
+import { toCsv } from "@/lib/domain/csv";
+import { downloadCsv } from "@/components/app/download-csv";
 import type { ConcessionStatus } from "@/lib/domain/types";
 import type { ConcessionRow } from "@/lib/services/concession-service";
 
@@ -97,6 +99,25 @@ function ConcessionInner({ concessions, items }: ConcessionInnerProps) {
     }
   }
 
+  function exportCsv() {
+    downloadCsv("concessions.csv", toCsv(
+      concessions.map((c) => ({
+        ...c,
+        status: STATUS_LABEL[c.status],
+        requestedAt: c.requestedAt.slice(0, 10),
+        decidedAt: c.decidedAt ? c.decidedAt.slice(0, 10) : "-",
+      })),
+      [
+        { key: "itemName", label: "품목" },
+        { key: "qty", label: "수량" },
+        { key: "reason", label: "사유" },
+        { key: "status", label: "상태" },
+        { key: "requestedAt", label: "요청일" },
+        { key: "decidedAt", label: "결정일" },
+      ],
+    ));
+  }
+
   const columns: ColumnDef<ConcessionRow>[] = [
     { accessorKey: "itemName", header: "품목" },
     { accessorKey: "qty", header: "수량", cell: (c) => <span className="num">{c.getValue<number>().toLocaleString()}</span> },
@@ -144,6 +165,8 @@ function ConcessionInner({ concessions, items }: ConcessionInnerProps) {
         title="품질 · 특채(조건부 합격)"
         description="조건부 합격 요청 · 승인/반려"
         actions={
+          <>
+          <Button variant="secondary" size="sm" onClick={exportCsv}>CSV</Button>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => setCreateOpen(true)}>특채 요청</Button>
@@ -182,6 +205,7 @@ function ConcessionInner({ concessions, items }: ConcessionInnerProps) {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </>
         }
       />
 

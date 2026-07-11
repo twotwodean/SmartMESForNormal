@@ -15,6 +15,8 @@ import {
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ToastProvider, useToast } from "@/components/ui/toast";
+import { toCsv } from "@/lib/domain/csv";
+import { downloadCsv } from "@/components/app/download-csv";
 import type { ProductModelRow, DocumentRow } from "@/lib/services/catalog-service";
 
 const NO_ITEM = "__NONE__";
@@ -106,6 +108,36 @@ function CatalogInner({ models, documents, items }: CatalogInnerProps) {
     }
   }
 
+  function exportModelsCsv() {
+    downloadCsv("catalog-models.csv", toCsv(
+      models.map((m) => ({ ...m, spec: m.spec ?? "-" })),
+      [
+        { key: "code", label: "코드" },
+        { key: "name", label: "모델명" },
+        { key: "itemName", label: "품목" },
+        { key: "spec", label: "사양" },
+      ],
+    ));
+  }
+
+  function exportDocumentsCsv() {
+    downloadCsv("catalog-documents.csv", toCsv(
+      documents.map((d) => ({
+        ...d,
+        itemName: d.itemName ?? "-",
+        note: d.note ?? "-",
+        createdAt: d.createdAt.slice(0, 10),
+      })),
+      [
+        { key: "name", label: "문서명" },
+        { key: "rev", label: "리비전" },
+        { key: "itemName", label: "품목" },
+        { key: "note", label: "비고" },
+        { key: "createdAt", label: "등록일" },
+      ],
+    ));
+  }
+
   const modelColumns: ColumnDef<ProductModelRow>[] = [
     { accessorKey: "code", header: "코드", cell: (c) => <span className="font-mono text-caption">{c.getValue<string>()}</span> },
     { accessorKey: "name", header: "모델명" },
@@ -134,6 +166,8 @@ function CatalogInner({ models, documents, items }: CatalogInnerProps) {
           <Card>
             <CardHeader className="justify-between">
               <CardTitle>모델 목록</CardTitle>
+              <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={exportModelsCsv}>CSV</Button>
               <Dialog open={modelOpen} onOpenChange={setModelOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" onClick={() => setModelOpen(true)}>모델 등록</Button>
@@ -176,6 +210,7 @@ function CatalogInner({ models, documents, items }: CatalogInnerProps) {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              </div>
             </CardHeader>
             <CardContent>
               <DataTable columns={modelColumns} data={models} enableFilter filterPlaceholder="코드·모델명·품목 검색" />
@@ -186,6 +221,8 @@ function CatalogInner({ models, documents, items }: CatalogInnerProps) {
           <Card>
             <CardHeader className="justify-between">
               <CardTitle>도면 목록</CardTitle>
+              <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={exportDocumentsCsv}>CSV</Button>
               <Dialog open={docOpen} onOpenChange={setDocOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" onClick={() => setDocOpen(true)}>도면 등록</Button>
@@ -229,6 +266,7 @@ function CatalogInner({ models, documents, items }: CatalogInnerProps) {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              </div>
             </CardHeader>
             <CardContent>
               <DataTable columns={documentColumns} data={documents} enableFilter filterPlaceholder="문서명·리비전·품목 검색" />

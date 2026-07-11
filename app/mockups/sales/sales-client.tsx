@@ -17,6 +17,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ToastProvider, useToast } from "@/components/ui/toast";
+import { toCsv } from "@/lib/domain/csv";
+import { downloadCsv } from "@/components/app/download-csv";
 import type { SalesOrderStatus, ShipmentStatus } from "@/lib/domain/types";
 import type { SalesOrderRow, ShipmentRow } from "@/lib/services/sales-service";
 import type { SupplierRow } from "@/lib/services/procurement-service";
@@ -159,6 +161,39 @@ function SalesInner({ orders, shipments, customers, items }: SalesInnerProps) {
     }
   }
 
+  function exportOrdersCsv() {
+    downloadCsv("sales-orders.csv", toCsv(
+      orders.map((o) => ({ ...o, status: SO_LABEL[o.status], dueDate: o.dueDate.slice(0, 10) })),
+      [
+        { key: "code", label: "수주번호" },
+        { key: "customerName", label: "고객" },
+        { key: "itemName", label: "품목" },
+        { key: "qty", label: "수량" },
+        { key: "status", label: "상태" },
+        { key: "dueDate", label: "납기" },
+      ],
+    ));
+  }
+
+  function exportShipmentsCsv() {
+    downloadCsv("shipments.csv", toCsv(
+      shipments.map((s) => ({
+        ...s,
+        salesOrderCode: s.salesOrderCode ?? "-",
+        status: SH_LABEL[s.status],
+        shippedAt: s.shippedAt ? s.shippedAt.slice(0, 10) : "-",
+      })),
+      [
+        { key: "code", label: "출하번호" },
+        { key: "salesOrderCode", label: "수주" },
+        { key: "itemName", label: "품목" },
+        { key: "qty", label: "수량" },
+        { key: "status", label: "상태" },
+        { key: "shippedAt", label: "출하일" },
+      ],
+    ));
+  }
+
   const orderColumns: ColumnDef<SalesOrderRow>[] = [
     { accessorKey: "code", header: "수주번호", cell: (c) => <span className="font-mono text-caption">{c.getValue<string>()}</span> },
     { accessorKey: "customerName", header: "고객" },
@@ -291,7 +326,10 @@ function SalesInner({ orders, shipments, customers, items }: SalesInnerProps) {
         </TabsList>
         <TabsContent value="orders">
           <Card>
-            <CardHeader><CardTitle>수주 목록</CardTitle></CardHeader>
+            <CardHeader className="justify-between">
+              <CardTitle>수주 목록</CardTitle>
+              <Button variant="secondary" size="sm" onClick={exportOrdersCsv}>CSV</Button>
+            </CardHeader>
             <CardContent>
               <DataTable columns={orderColumns} data={orders} enableFilter filterPlaceholder="수주·고객·품목 검색" />
             </CardContent>
@@ -299,7 +337,10 @@ function SalesInner({ orders, shipments, customers, items }: SalesInnerProps) {
         </TabsContent>
         <TabsContent value="shipments">
           <Card>
-            <CardHeader><CardTitle>출하 목록</CardTitle></CardHeader>
+            <CardHeader className="justify-between">
+              <CardTitle>출하 목록</CardTitle>
+              <Button variant="secondary" size="sm" onClick={exportShipmentsCsv}>CSV</Button>
+            </CardHeader>
             <CardContent>
               <DataTable columns={shipmentColumns} data={shipments} enableFilter filterPlaceholder="출하·수주·품목 검색" />
             </CardContent>

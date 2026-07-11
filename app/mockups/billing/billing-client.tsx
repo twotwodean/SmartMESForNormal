@@ -15,6 +15,8 @@ import {
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ToastProvider, useToast } from "@/components/ui/toast";
+import { toCsv } from "@/lib/domain/csv";
+import { downloadCsv } from "@/components/app/download-csv";
 import type { InvoiceStatus } from "@/lib/domain/types";
 import type { InvoiceRow } from "@/lib/services/billing-service";
 import type { SupplierRow } from "@/lib/services/procurement-service";
@@ -113,6 +115,27 @@ function BillingInner({ invoices, customers, shipments }: BillingInnerProps) {
     }
   }
 
+  function exportCsv() {
+    downloadCsv("invoices.csv", toCsv(
+      invoices.map((i) => ({
+        ...i,
+        shipmentCode: i.shipmentCode ?? "-",
+        status: INVOICE_LABEL[i.status],
+        issuedAt: i.issuedAt.slice(0, 10),
+      })),
+      [
+        { key: "code", label: "청구번호" },
+        { key: "customerName", label: "고객" },
+        { key: "shipmentCode", label: "출하" },
+        { key: "amount", label: "청구액" },
+        { key: "paid", label: "수금액" },
+        { key: "outstanding", label: "미수금" },
+        { key: "status", label: "상태" },
+        { key: "issuedAt", label: "발행일" },
+      ],
+    ));
+  }
+
   const columns: ColumnDef<InvoiceRow>[] = [
     { accessorKey: "code", header: "청구번호", cell: (c) => <span className="font-mono text-caption">{c.getValue<string>()}</span> },
     { accessorKey: "customerName", header: "고객" },
@@ -154,6 +177,8 @@ function BillingInner({ invoices, customers, shipments }: BillingInnerProps) {
         title="영업 · 매출/수금"
         description="청구 발행 · 수금 등록 · 미수금"
         actions={
+          <>
+          <Button variant="secondary" size="sm" onClick={exportCsv}>CSV</Button>
           <Dialog open={issueOpen} onOpenChange={setIssueOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => setIssueOpen(true)}>청구 발행</Button>
@@ -205,6 +230,7 @@ function BillingInner({ invoices, customers, shipments }: BillingInnerProps) {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </>
         }
       />
 
