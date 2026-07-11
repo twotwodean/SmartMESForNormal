@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/api/guard";
 import { parseBody } from "@/lib/api/validate";
 import { MaintenanceActionSchema } from "@/lib/api/schemas";
 import { advanceMaintenance } from "@/lib/services/equipment-service";
+import { logError } from "@/lib/log";
 export const runtime = "nodejs";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -14,6 +15,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const order = await advanceMaintenance(params.id, p.data.action);
     return NextResponse.json(order);
   } catch (e) {
+    logError("maintenance-orders/[id] PATCH", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });
   }
 }

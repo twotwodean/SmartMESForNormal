@@ -4,6 +4,7 @@ import { parseBody } from "@/lib/api/validate";
 import { BomComponentCreateSchema } from "@/lib/api/schemas";
 import { listBom, addBomComponent } from "@/lib/services/master-service";
 import { audit } from "@/lib/services/audit-service";
+import { logError } from "@/lib/log";
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
@@ -24,6 +25,7 @@ export async function POST(req: Request) {
     await audit("CREATE", "BomComponent", r.id);
     return NextResponse.json(r, { status: 201 });
   } catch (e) {
+    logError("bom-components POST", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });
   }
 }

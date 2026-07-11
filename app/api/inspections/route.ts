@@ -3,6 +3,7 @@ import { requireUser, requireRole } from "@/lib/api/guard";
 import { parseBody } from "@/lib/api/validate";
 import { InspectionCreateSchema } from "@/lib/api/schemas";
 import { listInspections, createInspection } from "@/lib/services/quality-service";
+import { logError } from "@/lib/log";
 export const runtime = "nodejs";
 
 export async function GET() {
@@ -20,6 +21,7 @@ export async function POST(req: Request) {
     const ins = await createInspection(p.data);
     return NextResponse.json(ins, { status: 201 });
   } catch (e) {
+    logError("inspections POST", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });
   }
 }

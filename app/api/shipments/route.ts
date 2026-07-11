@@ -3,6 +3,7 @@ import { requireUser, requireRole } from "@/lib/api/guard";
 import { parseBody } from "@/lib/api/validate";
 import { ShipmentCreateSchema } from "@/lib/api/schemas";
 import { listShipments, createShipment } from "@/lib/services/sales-service";
+import { logError } from "@/lib/log";
 export const runtime = "nodejs";
 
 export async function GET() {
@@ -20,6 +21,7 @@ export async function POST(req: Request) {
     const sh = await createShipment(p.data);
     return NextResponse.json(sh, { status: 201 });
   } catch (e) {
+    logError("shipments POST", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });
   }
 }

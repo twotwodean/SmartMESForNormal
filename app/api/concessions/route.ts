@@ -3,6 +3,7 @@ import { requireUser, requireRole } from "@/lib/api/guard";
 import { parseBody } from "@/lib/api/validate";
 import { ConcessionCreateSchema } from "@/lib/api/schemas";
 import { listConcessions, createConcession } from "@/lib/services/concession-service";
+import { logError } from "@/lib/log";
 export const runtime = "nodejs";
 
 export async function GET() {
@@ -20,6 +21,7 @@ export async function POST(req: Request) {
     const c = await createConcession(p.data);
     return NextResponse.json(c, { status: 201 });
   } catch (e) {
+    logError("concessions POST", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });
   }
 }

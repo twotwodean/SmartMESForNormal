@@ -4,6 +4,7 @@ import { parseBody } from "@/lib/api/validate";
 import { ShipmentActionSchema } from "@/lib/api/schemas";
 import { shipShipment, returnShipment } from "@/lib/services/sales-service";
 import { audit } from "@/lib/services/audit-service";
+import { logError } from "@/lib/log";
 export const runtime = "nodejs";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -16,6 +17,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     await audit(p.data.action === "ship" ? "SHIP" : "RETURN", "Shipment", sh.id);
     return NextResponse.json(sh);
   } catch (e) {
+    logError("shipments/[id] PATCH", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });
   }
 }
