@@ -1,12 +1,14 @@
 import { defineConfig } from "@playwright/test";
 
+import { E2E_DATABASE_URL } from "./e2e/db-url";
+
 const PORT = 3001;
 const isCI = !!process.env.CI;
 
 export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
-  workers: 1, // SQLite 직렬 + 결정적
+  workers: 1, // 격리된 e2e 스키마 + 직렬 실행으로 결정적 보장
   fullyParallel: false,
   retries: isCI ? 1 : 0,
   timeout: 30_000,
@@ -30,6 +32,6 @@ export default defineConfig({
     url: `http://localhost:${PORT}/login`,
     reuseExistingServer: !isCI,
     timeout: 120_000,
-    env: { DATABASE_URL: "file:./e2e.db", SESSION_SECRET: "e2e-secret" },
+    env: { DATABASE_URL: E2E_DATABASE_URL, SESSION_SECRET: "e2e-secret" },
   },
 });
