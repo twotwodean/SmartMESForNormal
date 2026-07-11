@@ -35,28 +35,37 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 # 헬스체크용 wget + Prisma 쿼리 엔진(linux-musl)이 필요로 하는 OpenSSL
 RUN apk add --no-cache wget openssl
 
-# 전체 node_modules를 사용한다: standalone이 trace한 최소 node_modules만으로는
-# `prisma` CLI(내부적으로 @prisma/engines, @prisma/fetch-engine 등 다수의 @prisma/*
-# 패키지에 의존)와 seed 실행용 `tsx`를 감당하지 못해 컨테이너 기동 시
-# "Cannot find module '@prisma/engines'" 로 깨진다. 이미지가 다소 커지는 대신
-# migrate deploy/seed까지 동일 이미지에서 안정적으로 동작하는 쪽을 택했다.
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+# WORKDIR 소유권만 nextjs로 넘긴다. 이후 설치/복사를 nextjs로 수행해
+# node_modules 전체를 `chown -R`로 다시 복제하는 레이어(수백 MB 낭비)를 없앤다.
+RUN chown nextjs:nodejs /app
+USER nextjs
+
+# 프로덕션 전용 설치: Storybook/Playwright/Vitest 등 devDependencies를 배제한다.
+# prisma(CLI)와 tsx(seed 실행)는 package.json에서 dependencies로 옮겨졌으므로
+# --omit=dev 로도 함께 설치된다. 설치 캐시는 이미지에 남기지 않는다.
+COPY --chown=nextjs:nodejs --from=builder /app/package.json /app/package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+# `npx prisma generate`가 스키마를 읽어 .prisma/client 엔진을 node_modules에 생성한다.
+# generate 시점에도 datasource url env가 정의돼 있어야 하므로 더미 값을 준다 (실제 접속 없음).
+ARG DATABASE_URL="postgresql://user:pass@localhost:5432/db"
+ENV DATABASE_URL=${DATABASE_URL}
+COPY --chown=nextjs:nodejs --from=builder /app/prisma ./prisma
+RUN npx prisma generate
 
 # next.js standalone 서버 엔트리 + 정적 자산
-COPY --from=builder /app/.next/standalone/server.js ./server.js
-COPY --from=builder /app/.next/standalone/.next ./.next
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+# (standalone이 자체 trace한 node_modules는 사용하지 않는다 — 위에서 만든
+# --omit=dev node_modules를 그대로 쓰고, server.js/.next/public만 가져온다.)
+COPY --chown=nextjs:nodejs --from=builder /app/.next/standalone/server.js ./server.js
+COPY --chown=nextjs:nodejs --from=builder /app/.next/standalone/.next ./.next
+COPY --chown=nextjs:nodejs --from=builder /app/.next/static ./.next/static
+COPY --chown=nextjs:nodejs --from=builder /app/public ./public
 
 # 시작 시 prisma migrate deploy / seed(tsx) 실행을 위한 소스
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/lib ./lib
+COPY --chown=nextjs:nodejs --from=builder /app/lib ./lib
 
-COPY docker-entrypoint.sh ./docker-entrypoint.sh
-RUN chmod +x ./docker-entrypoint.sh && chown -R nextjs:nodejs /app
-
-USER nextjs
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
 EXPOSE 3001
 
