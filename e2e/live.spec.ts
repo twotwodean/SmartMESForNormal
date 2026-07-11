@@ -24,6 +24,7 @@ test.describe("실시간 대시보드(SSE)", () => {
     });
     expect(createRes.ok()).toBe(true);
 
-    await expect(mttrNote).not.toHaveText(before ?? "", { timeout: 8_000 });
+    // SSE 스트림 간격(4s) + CI 프로덕션 서버의 스냅샷 생성/전파 지연을 넉넉히 흡수
+    await expect(mttrNote).not.toHaveText(before ?? "", { timeout: 20_000 });
   });
 });
