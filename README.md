@@ -3,16 +3,21 @@
 도메인 중립 웹 MES. 디자인 우선(design-first)으로 D0 토큰 → D1 컴포넌트 → D2 목업 순으로 구축한다.
 
 ## 스택
-Next.js 14 · TypeScript · Tailwind CSS · shadcn/ui · Storybook · Prisma+SQLite · lucide-react · Pretendard(로컬 번들)
+Next.js 14 · TypeScript · Tailwind CSS · shadcn/ui · Storybook · Prisma+PostgreSQL · lucide-react · Pretendard(로컬 번들)
 
 ## 실행
 ```bash
+docker compose up -d   # 로컬 PostgreSQL 기동 (컨테이너 smartmes-postgres, 5432)
 npm install
+cp .env.example .env    # DATABASE_URL/SESSION_SECRET 설정 (없으면 앱이 즉시 실패)
+npx prisma migrate deploy   # 최초 1회: 스키마 적용
+npm run db:seed             # 최초 1회: 기본 데이터 시드
 npm run dev         # http://localhost:3001
 npm run storybook   # http://localhost:6006
 npm test            # Vitest
 npm run build       # 프로덕션 빌드
 ```
+DB는 `docker-compose.yml`의 PostgreSQL 컨테이너를 사용한다(`DATABASE_URL="postgresql://smartmes:smartmes@localhost:5432/smartmes?schema=public"`). 스키마별로 격리되므로 dev(`public`)/e2e(`e2e`)/synth·loadtest 용 스키마를 자유롭게 나눠 쓸 수 있다.
 
 ## 구조
 - `app/` — 라우트·페이지 (App Router)
@@ -33,19 +38,19 @@ npm run build       # 프로덕션 빌드
 
 ### 단위 테스트
 ```bash
-npm test            # Vitest, 113개
+npm test            # Vitest, 133개
 ```
-`lib/`, `app/api/**` 등 도메인 로직·서비스 계층을 커버한다. `prisma/dev.db`를 건드리지 않는다(주로 순수 함수/서비스 단위 테스트).
+`lib/`, `app/api/**` 등 도메인 로직·서비스 계층을 커버한다. `DATABASE_URL`(기본 `public` 스키마)로 접속하며, 대부분 순수 함수/서비스 단위 테스트다.
 
 ### E2E 테스트 (Playwright)
 ```bash
-npm run test:e2e         # 헤드리스 전체 실행, 14개
+npm run test:e2e         # 헤드리스 전체 실행, 23개
 npm run test:e2e:ui      # UI 모드로 디버깅
 npm run test:e2e:headed  # 실제 브라우저 창을 띄워 실행
 npm run test:e2e:report  # 마지막 실행의 HTML 리포트(영상 임베드) 열기
 ```
-- 전용 DB(`e2e.db`)에서 동작 — `playwright.config.ts`의 `globalSetup`(`e2e/global-setup.ts`)이 실행 전 `DATABASE_URL="file:./e2e.db"`로 `prisma migrate deploy` + `db:seed`를 수행해 `dev.db`와 완전히 분리한다.
-- SQLite 특성상 `workers: 1`(직렬 실행)로 고정.
+- 동일 PostgreSQL 인스턴스의 전용 스키마(`?schema=e2e`, `e2e/db-url.ts`의 `E2E_DATABASE_URL`)에서 동작 — `playwright.config.ts`의 `globalSetup`(`e2e/global-setup.ts`)이 실행 전 해당 URL로 `prisma migrate deploy` + `db:seed`를 수행해 dev(`public`) 스키마와 완전히 분리한다. 필요 시 `E2E_DATABASE_URL` 환경변수로 재정의 가능.
+- 결정적 실행을 위해 `workers: 1`(직렬 실행)로 고정.
 - 로컬에서는 `npm run dev`를, CI에서는 (빌드 산출물 기반) `npm run start`를 웹서버로 자동 기동한다.
 - 커버리지: 로그인/리다이렉트(`auth`), 생산실적→재고(`production`), 입고·출하·반품(`logistics`), 청구·수금(`billing`), MRP 순소요(`mrp`), viewer 권한 차단(`rbac`).
 
@@ -62,11 +67,13 @@ npm run test:e2e:report  # 마지막 실행의 HTML 리포트(영상 임베드) 
 npm run db:synth     # 기본 규모(품목 2,000 / 수불 5만 / 작업지시 2,000 / 수주 1,000)
 ```
 - env 파라미터로 규모 조절: `SYNTH_ITEMS`, `SYNTH_TXNS`, `SYNTH_WORK_ORDERS`, `SYNTH_SALES_ORDERS`.
-- 실행 시간이 걸리고 DB 용량이 커지므로 **사본 DB에 실행 권장**:
+- 실행 시간이 걸리고 DB 용량이 커지므로 **별도 스키마에 실행 권장**:
   ```bash
-  SYNTH_ITEMS=100 DATABASE_URL="file:./synth-smoke.db" npx tsx scripts/synth.ts
+  SYNTH_ITEMS=100 DATABASE_URL="postgresql://smartmes:smartmes@localhost:5432/smartmes?schema=synth" npx prisma migrate deploy
+  SYNTH_ITEMS=100 DATABASE_URL="postgresql://smartmes:smartmes@localhost:5432/smartmes?schema=synth" npx tsx scripts/synth.ts
   ```
 - 기존 seed 데이터 위에 `SYN-` 접두 코드로 대량 데이터를 append한다(seed 계정/기준정보는 보존).
+- 부하 테스트(`scripts/loadtest.ts`)도 동일하게 별도 스키마(예: `?schema=load`) 사용을 권장한다.
 
 ### 테스트 계정
 | 계정 | 비밀번호 | 역할 |
@@ -78,4 +85,6 @@ npm run db:synth     # 기본 규모(품목 2,000 / 수불 5만 / 작업지시 2
 ### CI 게이트
 `.github/workflows/ci.yml` — `main`/`feature/**` push와 `main` 대상 PR에서 자동 실행:
 
-`npm ci` → `prisma generate` → `prisma migrate deploy`(`ci.db`) → `db:seed` → `npm test` → `npm run build` → Playwright 브라우저 설치 → `npm run test:e2e`(전용 `e2e.db`, CI 모드). 실패 시 `playwright-report`를 아티팩트로 업로드한다. 단위·빌드·E2E 중 하나라도 실패하면 게이트가 막힌다(PR 머지 전 필수 확인).
+CI는 `postgres:16-alpine` 서비스 컨테이너(포트 5432, healthcheck)를 띄우고 진행한다:
+
+`npm ci` → `prisma generate` → `prisma migrate deploy`(`public` 스키마) → `db:seed` → `npm test` → `npm run build` → Playwright 브라우저 설치 → `npm run test:e2e`(전용 `e2e` 스키마, CI 모드). 실패 시 `playwright-report`를 아티팩트로 업로드한다. 단위·빌드·E2E 중 하나라도 실패하면 게이트가 막힌다(PR 머지 전 필수 확인).

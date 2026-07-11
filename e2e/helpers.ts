@@ -1,6 +1,8 @@
 import { execSync } from "node:child_process";
 import type { Page } from "@playwright/test";
 
+import { E2E_DATABASE_URL } from "./db-url";
+
 export const CREDENTIALS = {
   admin: { username: "admin", password: "admin123" },
   operator: { username: "operator", password: "oper123" },
@@ -18,7 +20,7 @@ export async function loginAs(page: Page, role: keyof typeof CREDENTIALS): Promi
   await page.goto("/mockups/manager");
 }
 
-/** baseline로 e2e.db 재시드(각 spec 독립성) */
+/** baseline로 e2e 스키마 재시드(각 spec 독립성) */
 export function reseed(): void {
-  execSync("npx tsx prisma/seed.ts", { stdio: "ignore", env: { ...process.env, DATABASE_URL: "file:./e2e.db" } });
+  execSync("npx tsx prisma/seed.ts", { stdio: "ignore", env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL } });
 }

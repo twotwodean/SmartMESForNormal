@@ -1,0 +1,23 @@
+# 로컬 개발/테스트용 PostgreSQL. 운영은 관리형 PG(RDS 등) 권장.
+# 사용: docker compose up -d  →  DATABASE_URL="postgresql://smartmes:smartmes@localhost:5432/smartmes?schema=public"
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartmes-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smartmes
+      POSTGRES_PASSWORD: smartmes
+      POSTGRES_DB: smartmes
+    ports:
+      - "5432:5432"
+    volumes:
+      - smartmes-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartmes -d smartmes"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  smartmes-pgdata:

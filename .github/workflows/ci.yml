@@ -9,8 +9,23 @@ name: CI
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: smartmes
+          POSTGRES_PASSWORD: smartmes
+          POSTGRES_DB: smartmes
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U smartmes -d smartmes"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      DATABASE_URL: "file:./ci.db"
+      DATABASE_URL: "postgresql://smartmes:smartmes@localhost:5432/smartmes?schema=public"
+      E2E_DATABASE_URL: "postgresql://smartmes:smartmes@localhost:5432/smartmes?schema=e2e"
       SESSION_SECRET: "ci-secret"
     steps:
       - uses: actions/checkout@v4
@@ -26,10 +41,10 @@ jobs:
       - name: Prisma generate
         run: npx prisma generate
 
-      - name: Prisma migrate (ci.db)
+      - name: Prisma migrate (public schema)
         run: npx prisma migrate deploy
 
-      - name: Seed ci.db
+      - name: Seed public schema
         run: npm run db:seed
 
       - name: Unit tests (vitest)
@@ -41,7 +56,7 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: E2E tests (playwright, own e2e.db)
+      - name: E2E tests (playwright, own e2e schema)
         run: npm run test:e2e
         env:
           CI: "true"
