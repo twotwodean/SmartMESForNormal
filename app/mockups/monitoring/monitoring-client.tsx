@@ -82,6 +82,14 @@ function EquipmentCard({ row }: { row: EquipmentStateRow }) {
               />
               <KPITile label="사이클타임" value={row.cycleTime.toFixed(1)} unit="s" tone="primary" />
             </div>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 border-t border-border pt-4">
+              <GaugeTile label="OEE" value={row.oee.oee * 100} unit="%" tone="primary" size={96} />
+              <div className="grid grid-cols-3 gap-3">
+                <KPITile label="가동률" value={(row.oee.availability * 100).toFixed(0)} unit="%" tone="ok" />
+                <KPITile label="성능" value={(row.oee.performance * 100).toFixed(0)} unit="%" tone="info" />
+                <KPITile label="품질" value={(row.oee.quality * 100).toFixed(0)} unit="%" tone="warn" />
+              </div>
+            </div>
             <div className="mt-4 flex flex-wrap justify-center gap-4">
               {row.temperature !== null ? (
                 <GaugeTile label="온도" value={row.temperature} unit="℃" tone="info" size={96} />
