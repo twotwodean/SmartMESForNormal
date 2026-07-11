@@ -14,6 +14,7 @@
     "build-storybook": "storybook build",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:synth": "tsx scripts/synth.ts",
     "db:reset": "prisma migrate reset --force",
     "db:studio": "prisma studio"
   },

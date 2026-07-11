@@ -9,6 +9,8 @@ prisma/dev.db
 prisma/dev.db-journal
 e2e.db
 e2e.db-journal
+synth-smoke.db
+synth-smoke.db-journal
 test-results/
 playwright-report/
 .last-run.json
