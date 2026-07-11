@@ -1,0 +1,20 @@
+node_modules
+.next
+.git
+.env
+.env.local
+.env*.local
+test-results
+playwright-report
+*.db
+docs
+.storybook
+storybook-static
+# NOTE: e2e/ is intentionally NOT ignored — playwright.config.ts (picked up by
+# tsconfig's **/*.ts include) imports ./e2e/db-url, so `next build`'s type-check
+# step fails without it present in the build context. It is not copied into the
+# final runner stage, so it doesn't affect the shipped image size.
+coverage
+npm-debug.log*
+.DS_Store
+*.tsbuildinfo
