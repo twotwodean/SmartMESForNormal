@@ -4,6 +4,7 @@ import { parseBody } from "@/lib/api/validate";
 import { ProcessStageUpdateSchema } from "@/lib/api/schemas";
 import { updateProcessStage, deleteProcessStage } from "@/lib/services/master-service";
 import { audit } from "@/lib/services/audit-service";
+import { logError } from "@/lib/log";
 export const runtime = "nodejs";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -16,6 +17,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     await audit("UPDATE", "ProcessStage", r.id);
     return NextResponse.json(r);
   } catch (e) {
+    logError("process-stages/[id] PATCH", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });
   }
 }
@@ -28,6 +30,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     await audit("DELETE", "ProcessStage", params.id);
     return NextResponse.json({ ok: true });
   } catch (e) {
+    logError("process-stages/[id] DELETE", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });
   }
 }

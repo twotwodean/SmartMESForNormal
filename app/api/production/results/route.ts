@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/api/guard";
 import { parseBody } from "@/lib/api/validate";
 import { ProductionResultCreateSchema } from "@/lib/api/schemas";
 import { registerResult } from "@/lib/services/production-service";
+import { logError } from "@/lib/log";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
@@ -14,6 +15,7 @@ export async function POST(req: Request) {
     const out = await registerResult(p.data);
     return NextResponse.json(out, { status: 201 });
   } catch (e) {
+    logError("production/results POST", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });
   }
 }

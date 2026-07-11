@@ -4,6 +4,7 @@ import { parseBody } from "@/lib/api/validate";
 import { DocumentCreateSchema } from "@/lib/api/schemas";
 import { listDocuments, createDocument } from "@/lib/services/catalog-service";
 import { audit } from "@/lib/services/audit-service";
+import { logError } from "@/lib/log";
 export const runtime = "nodejs";
 
 export async function GET() {
@@ -22,6 +23,7 @@ export async function POST(req: Request) {
     await audit("CREATE", "DocumentRev", d.id);
     return NextResponse.json(d, { status: 201 });
   } catch (e) {
+    logError("documents POST", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });
   }
 }

@@ -4,6 +4,7 @@ import { parseBody } from "@/lib/api/validate";
 import { InvoiceCreateSchema } from "@/lib/api/schemas";
 import { listInvoices, createInvoice } from "@/lib/services/billing-service";
 import { audit } from "@/lib/services/audit-service";
+import { logError } from "@/lib/log";
 export const runtime = "nodejs";
 
 export async function GET() {
@@ -22,6 +23,7 @@ export async function POST(req: Request) {
     await audit("CREATE", "Invoice", inv.id);
     return NextResponse.json(inv, { status: 201 });
   } catch (e) {
+    logError("invoices POST", e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "오류" }, { status: 400 });
   }
 }
