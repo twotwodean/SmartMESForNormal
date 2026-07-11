@@ -103,6 +103,11 @@ model EquipmentState {
   online      Boolean  @default(false)
   updatedAt   DateTime @updatedAt
 
+  // PLC-4: 카운터 델타 누적(auto-POP) — 미반영분 보관 후 주기 flush
+  pendingGood   Int       @default(0)
+  pendingDefect Int       @default(0)
+  lastFlushAt   DateTime?
+
   equipment Equipment @relation(fields: [equipmentId], references: [id])
 }
 
