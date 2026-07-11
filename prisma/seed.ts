@@ -9,6 +9,8 @@ async function main() {
   await prisma.documentRev.deleteMany();
   await prisma.productModel.deleteMany();
   await prisma.concession.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.invoice.deleteMany();
   await prisma.shipment.deleteMany();
   await prisma.salesOrder.deleteMany();
   await prisma.goodsReceipt.deleteMany();
@@ -161,7 +163,7 @@ async function main() {
 
   // 수주(영업) + 출하요청
   const so = await prisma.salesOrder.create({ data: { code: "SO-2607-001", customerId: cus.id, itemId: fin.id, qty: 200, status: "ORDERED", dueDate: new Date("2026-07-20") } });
-  await prisma.shipment.create({ data: { code: "SH-2607-001", salesOrderId: so.id, itemId: fin.id, qty: 120, status: "REQUESTED" } });
+  const shipment = await prisma.shipment.create({ data: { code: "SH-2607-001", salesOrderId: so.id, itemId: fin.id, qty: 120, status: "REQUESTED" } });
 
   // 특채
   await prisma.concession.create({ data: { itemId: fin.id, qty: 5, reason: "치수 경미 초과(고객 승인 요청)", status: "REQUESTED" } });
@@ -170,8 +172,14 @@ async function main() {
   await prisma.productModel.create({ data: { itemId: fin.id, code: "PM-GB2500-A", name: "GB-2500 표준형", spec: "감속비 1:25" } });
   await prisma.documentRev.create({ data: { itemId: fin.id, name: "GB-2500 조립도", rev: "B", note: "베어링 사양 변경" } });
 
+  // 매출(청구)·수금
+  const invoice = await prisma.invoice.create({
+    data: { code: "INV-2607-001", customerId: cus.id, shipmentId: shipment.id, amount: 1_200_000, status: "PARTIAL" },
+  });
+  await prisma.payment.create({ data: { invoiceId: invoice.id, amount: 500_000 } });
+
   console.log(
-    "seed 완료: 사용자 3, 품목 4, 작업장 2, 공정 3, Routing 1, 계획 1, WO 1, Lot 2, 재고txn 5, 불량코드 5, 검사 3, 부적합 1, 정비 2+1, 알람 3, 거래처 2, 발주 2, 입고 1, 수주 1, 출하 1, 특채 1, 모델 1, 문서 1",
+    "seed 완료: 사용자 3, 품목 4, 작업장 2, 공정 3, Routing 1, 계획 1, WO 1, Lot 2, 재고txn 5, 불량코드 5, 검사 3, 부적합 1, 정비 2+1, 알람 3, 거래처 2, 발주 2, 입고 1, 수주 1, 출하 1, 특채 1, 모델 1, 문서 1, 청구 1, 수금 1",
   );
 }
 

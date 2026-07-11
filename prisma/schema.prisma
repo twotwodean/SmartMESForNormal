@@ -297,6 +297,7 @@ model Supplier {
   type           String          @default("SUPPLIER")
   purchaseOrders PurchaseOrder[]
   salesOrders    SalesOrder[]
+  invoices       Invoice[]
 }
 
 // status: ORDERED | PARTIAL | RECEIVED | CANCELLED
@@ -351,6 +352,7 @@ model Shipment {
   createdAt    DateTime    @default(now())
   salesOrder   SalesOrder? @relation(fields: [salesOrderId], references: [id])
   item         Item        @relation(fields: [itemId], references: [id])
+  invoices     Invoice[]
 }
 
 // status: REQUESTED | APPROVED | REJECTED
@@ -382,4 +384,27 @@ model DocumentRev {
   note      String?
   createdAt DateTime @default(now())
   item      Item?    @relation(fields: [itemId], references: [id])
+}
+
+// ── 매출/수금 (SAL) ──
+// status: ISSUED | PARTIAL | PAID
+model Invoice {
+  id         String    @id @default(cuid())
+  code       String    @unique
+  customerId String
+  shipmentId String?
+  amount     Int
+  status     String    @default("ISSUED")
+  issuedAt   DateTime  @default(now())
+  customer   Supplier  @relation(fields: [customerId], references: [id])
+  shipment   Shipment? @relation(fields: [shipmentId], references: [id])
+  payments   Payment[]
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  amount    Int
+  paidAt    DateTime @default(now())
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id])
 }
