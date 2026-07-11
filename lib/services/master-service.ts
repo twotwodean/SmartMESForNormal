@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
-import type { ItemType } from "@/lib/domain/types";
+import type { ItemType, DowntimeCategory } from "@/lib/domain/types";
 import { wouldCreateCycle, type BomLink } from "@/lib/domain/bom";
 
 function dupError(): never { throw new Error("이미 존재하는 코드입니다."); }
@@ -140,3 +140,63 @@ export async function addRoutingStep(input: { routingId: string; processStageId:
   return prisma.routingStep.create({ data: { routingId: input.routingId, processStageId: input.processStageId, workCenterId: input.workCenterId ?? null, seq: input.seq, stdTimeMin: input.stdTimeMin } });
 }
 export async function removeRoutingStep(id: string) { return prisma.routingStep.delete({ where: { id } }); }
+
+// ---------- Operator ----------
+export interface OperatorRow { id: string; code: string; name: string; active: boolean; }
+export async function listOperators(): Promise<OperatorRow[]> {
+  const rows = await prisma.operator.findMany({ orderBy: { code: "asc" } });
+  return rows.map((r) => ({ id: r.id, code: r.code, name: r.name, active: r.active }));
+}
+export async function createOperator(input: { code: string; name: string; active?: boolean }) {
+  if (!input.code.trim() || !input.name.trim()) throw new Error("사번과 이름은 필수입니다.");
+  try { return await prisma.operator.create({ data: input }); }
+  catch (e) { if (isP2002(e)) dupError(); throw e; }
+}
+export async function updateOperator(id: string, input: { name?: string; active?: boolean }) {
+  return prisma.operator.update({ where: { id }, data: input });
+}
+export async function deleteOperator(id: string) {
+  const results = await prisma.productionResult.count({ where: { operatorId: id } });
+  if (results > 0) inUse("생산실적에서 참조됨");
+  return prisma.operator.delete({ where: { id } });
+}
+
+// ---------- Shift ----------
+export interface ShiftRow { id: string; code: string; name: string; }
+export async function listShifts(): Promise<ShiftRow[]> {
+  const rows = await prisma.shift.findMany({ orderBy: { code: "asc" } });
+  return rows.map((r) => ({ id: r.id, code: r.code, name: r.name }));
+}
+export async function createShift(input: { code: string; name: string }) {
+  if (!input.code.trim() || !input.name.trim()) throw new Error("코드와 이름은 필수입니다.");
+  try { return await prisma.shift.create({ data: input }); }
+  catch (e) { if (isP2002(e)) dupError(); throw e; }
+}
+export async function updateShift(id: string, input: { name?: string }) {
+  return prisma.shift.update({ where: { id }, data: input });
+}
+export async function deleteShift(id: string) {
+  const results = await prisma.productionResult.count({ where: { shiftId: id } });
+  if (results > 0) inUse("생산실적에서 참조됨");
+  return prisma.shift.delete({ where: { id } });
+}
+
+// ---------- DowntimeReason ----------
+export interface DowntimeReasonRow { id: string; code: string; label: string; category: DowntimeCategory; }
+export async function listDowntimeReasons(): Promise<DowntimeReasonRow[]> {
+  const rows = await prisma.downtimeReason.findMany({ orderBy: { code: "asc" } });
+  return rows.map((r) => ({ id: r.id, code: r.code, label: r.label, category: r.category as DowntimeCategory }));
+}
+export async function createDowntimeReason(input: { code: string; label: string; category: DowntimeCategory }) {
+  if (!input.code.trim() || !input.label.trim()) throw new Error("코드와 사유명은 필수입니다.");
+  try { return await prisma.downtimeReason.create({ data: input }); }
+  catch (e) { if (isP2002(e)) dupError(); throw e; }
+}
+export async function updateDowntimeReason(id: string, input: { label?: string; category?: DowntimeCategory }) {
+  return prisma.downtimeReason.update({ where: { id }, data: input });
+}
+export async function deleteDowntimeReason(id: string) {
+  const results = await prisma.productionResult.count({ where: { downtimeReasonId: id } });
+  if (results > 0) inUse("생산실적에서 참조됨");
+  return prisma.downtimeReason.delete({ where: { id } });
+}

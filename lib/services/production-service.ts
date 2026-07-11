@@ -5,6 +5,9 @@ export interface RegisterResultInput {
   goodQty: number;
   defectQty?: number;
   downtimeMin?: number;
+  operatorId?: string;
+  shiftId?: string;
+  downtimeReasonId?: string;
 }
 
 /**
@@ -21,7 +24,15 @@ export async function registerResult(input: RegisterResultInput) {
     if (!wo) throw new Error("작업지시를 찾을 수 없습니다.");
 
     const result = await tx.productionResult.create({
-      data: { workOrderId, goodQty, defectQty, downtimeMin },
+      data: {
+        workOrderId,
+        goodQty,
+        defectQty,
+        downtimeMin,
+        ...(input.operatorId ? { operatorId: input.operatorId } : {}),
+        ...(input.shiftId ? { shiftId: input.shiftId } : {}),
+        ...(input.downtimeReasonId ? { downtimeReasonId: input.downtimeReasonId } : {}),
+      },
     });
 
     if (goodQty > 0) {
@@ -77,4 +88,38 @@ export async function recordPlcProduction(
   });
 
   return { created: true, workOrderCode: workOrder.code };
+}
+
+export interface RecentResultRow {
+  id: string;
+  workOrderCode: string;
+  goodQty: number;
+  defectQty: number;
+  downtimeMin: number;
+  operatorName: string | null;
+  shiftName: string | null;
+  downtimeReasonLabel: string | null;
+  createdAt: string;
+}
+
+/**
+ * 최근 생산실적 목록(작업자·근무조·정지사유 귀속 표시용). 자동집계(PLC) 실적은 귀속 정보가 없어 null로 표시된다.
+ */
+export async function listRecentResults(limit = 20): Promise<RecentResultRow[]> {
+  const rows = await prisma.productionResult.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: { workOrder: true, operator: true, shift: true, downtimeReason: true },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    workOrderCode: r.workOrder.code,
+    goodQty: r.goodQty,
+    defectQty: r.defectQty,
+    downtimeMin: r.downtimeMin,
+    operatorName: r.operator?.name ?? null,
+    shiftName: r.shift?.name ?? null,
+    downtimeReasonLabel: r.downtimeReason?.label ?? null,
+    createdAt: r.createdAt.toISOString(),
+  }));
 }

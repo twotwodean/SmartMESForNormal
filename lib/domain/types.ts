@@ -16,3 +16,4 @@ export type SalesOrderStatus = "ORDERED" | "PRODUCING" | "SHIPPED" | "CANCELLED"
 export type ShipmentStatus = "REQUESTED" | "SHIPPED" | "RETURNED";
 export type ConcessionStatus = "REQUESTED" | "APPROVED" | "REJECTED";
 export type InvoiceStatus = "ISSUED" | "PARTIAL" | "PAID";
+export type DowntimeCategory = "PLANNED" | "UNPLANNED";

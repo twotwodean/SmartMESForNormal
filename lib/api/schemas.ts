@@ -244,6 +244,9 @@ export const ProductionResultCreateSchema = z.object(
       .int("downtimeMin은 정수여야 합니다.")
       .min(0, "downtimeMin은 음수일 수 없습니다.")
       .optional(),
+    operatorId: z.string("operatorId는 문자열이어야 합니다.").optional(),
+    shiftId: z.string("shiftId는 문자열이어야 합니다.").optional(),
+    downtimeReasonId: z.string("downtimeReasonId는 문자열이어야 합니다.").optional(),
   },
   { message: BODY_INVALID },
 );
@@ -298,6 +301,60 @@ export const WorkOrderStatusSchema = z.enum(["WAITING", "RUNNING", "DONE", "CANC
 
 export const WorkOrderUpdateSchema = z.object(
   { status: WorkOrderStatusSchema },
+  { message: BODY_INVALID },
+);
+
+// ---------- Operator ----------
+export const OperatorCreateSchema = z.object(
+  {
+    code: z.string("code가 필요합니다.").min(1, "code가 필요합니다."),
+    name: z.string("name이 필요합니다.").min(1, "name이 필요합니다."),
+    active: z.boolean().optional(),
+  },
+  { message: BODY_INVALID },
+);
+
+export const OperatorUpdateSchema = z.object(
+  {
+    name: z.string().optional(),
+    active: z.boolean().optional(),
+  },
+  { message: BODY_INVALID },
+);
+
+// ---------- Shift ----------
+export const ShiftCreateSchema = z.object(
+  {
+    code: z.string("code가 필요합니다.").min(1, "code가 필요합니다."),
+    name: z.string("name이 필요합니다.").min(1, "name이 필요합니다."),
+  },
+  { message: BODY_INVALID },
+);
+
+export const ShiftUpdateSchema = z.object(
+  { name: z.string().optional() },
+  { message: BODY_INVALID },
+);
+
+// ---------- DowntimeReason ----------
+export const DowntimeCategorySchema = z.enum(["PLANNED", "UNPLANNED"], {
+  message: "category는 PLANNED 또는 UNPLANNED여야 합니다.",
+});
+
+export const DowntimeReasonCreateSchema = z.object(
+  {
+    code: z.string("code가 필요합니다.").min(1, "code가 필요합니다."),
+    label: z.string("label이 필요합니다.").min(1, "label이 필요합니다."),
+    category: DowntimeCategorySchema,
+  },
+  { message: BODY_INVALID },
+);
+
+export const DowntimeReasonUpdateSchema = z.object(
+  {
+    label: z.string().optional(),
+    category: DowntimeCategorySchema.optional(),
+  },
   { message: BODY_INVALID },
 );
 

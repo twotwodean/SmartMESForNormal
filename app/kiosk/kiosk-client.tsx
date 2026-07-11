@@ -8,26 +8,44 @@ import { ChevronLeft } from "lucide-react";
 import { KioskNumpad } from "@/components/ui/kiosk-numpad";
 import { Button } from "@/components/ui/button";
 import { StatusPill, workOrderTone } from "@/components/ui/status-pill";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import type { WorkOrderRow } from "@/lib/services/work-order-service";
+import type { OperatorRow, ShiftRow } from "@/lib/services/master-service";
 import type { WorkOrderStatus } from "@/lib/domain/types";
 
 const STATUS_LABEL: Record<WorkOrderStatus, string> = {
   WAITING: "대기", RUNNING: "진행", DONE: "완료", CANCELLED: "취소",
 };
 
-function KioskEntry({ targets }: { targets: WorkOrderRow[] }) {
+const NO_OPERATOR = "__NONE__";
+const NO_SHIFT = "__NONE__";
+
+interface KioskEntryProps {
+  targets: WorkOrderRow[];
+  operators: OperatorRow[];
+  shifts: ShiftRow[];
+}
+
+function KioskEntry({ targets, operators, shifts }: KioskEntryProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [wo, setWo] = React.useState<WorkOrderRow>(targets[0]);
   const [good, setGood] = React.useState(0);
+  const [operatorId, setOperatorId] = React.useState<string>(NO_OPERATOR);
+  const [shiftId, setShiftId] = React.useState<string>(NO_SHIFT);
 
   async function register() {
     const res = await fetch("/api/production/results", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workOrderId: wo.id, goodQty: good }),
+      body: JSON.stringify({
+        workOrderId: wo.id,
+        goodQty: good,
+        operatorId: operatorId === NO_OPERATOR ? undefined : operatorId,
+        shiftId: shiftId === NO_SHIFT ? undefined : shiftId,
+      }),
     });
     if (res.ok) {
       toast({ title: "실적 등록됨", description: `${wo.code} · 양품 ${good.toLocaleString()} EA`, tone: "ok" });
@@ -77,6 +95,34 @@ function KioskEntry({ targets }: { targets: WorkOrderRow[] }) {
         <StatusPill tone={workOrderTone(wo.status)}>{STATUS_LABEL[wo.status]}</StatusPill>
       </div>
 
+      {/* 작업자 · 근무조 — 대형 선택 */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-body-sm text-text-muted">작업자</span>
+          <Select value={operatorId} onValueChange={setOperatorId}>
+            <SelectTrigger className="h-14 text-[18px]"><SelectValue placeholder="작업자 선택" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_OPERATOR}>미지정</SelectItem>
+              {operators.map((o) => (
+                <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-body-sm text-text-muted">근무조</span>
+          <Select value={shiftId} onValueChange={setShiftId}>
+            <SelectTrigger className="h-14 text-[18px]"><SelectValue placeholder="근무조 선택" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_SHIFT}>미지정</SelectItem>
+              {shifts.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
+      </div>
+
       {/* 대형 키패드 + 등록 */}
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-center">
         <div className="flex flex-col items-center gap-2">
@@ -89,7 +135,13 @@ function KioskEntry({ targets }: { targets: WorkOrderRow[] }) {
   );
 }
 
-export function KioskClient({ targets }: { targets: WorkOrderRow[] }) {
+interface KioskClientProps {
+  targets: WorkOrderRow[];
+  operators: OperatorRow[];
+  shifts: ShiftRow[];
+}
+
+export function KioskClient({ targets, operators, shifts }: KioskClientProps) {
   return (
     <ToastProvider>
       {targets.length === 0 ? (
@@ -103,7 +155,7 @@ export function KioskClient({ targets }: { targets: WorkOrderRow[] }) {
           <p className="text-body-sm text-text-muted">등록 대상 작업지시가 없습니다.</p>
         </div>
       ) : (
-        <KioskEntry targets={targets} />
+        <KioskEntry targets={targets} operators={operators} shifts={shifts} />
       )}
     </ToastProvider>
   );

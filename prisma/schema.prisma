@@ -227,15 +227,50 @@ model LotGenealogy {
 }
 
 model ProductionResult {
-  id          String   @id @default(cuid())
-  workOrderId String
-  lotId       String?
-  goodQty     Int      @default(0)
-  defectQty   Int      @default(0)
-  downtimeMin Int      @default(0)
-  createdAt   DateTime @default(now())
+  id               String   @id @default(cuid())
+  workOrderId      String
+  lotId            String?
+  goodQty          Int      @default(0)
+  defectQty        Int      @default(0)
+  downtimeMin      Int      @default(0)
+  createdAt        DateTime @default(now())
+  operatorId       String?
+  shiftId          String?
+  downtimeReasonId String?
 
-  workOrder WorkOrder @relation(fields: [workOrderId], references: [id])
+  workOrder      WorkOrder       @relation(fields: [workOrderId], references: [id])
+  operator       Operator?       @relation(fields: [operatorId], references: [id])
+  shift          Shift?          @relation(fields: [shiftId], references: [id])
+  downtimeReason DowntimeReason? @relation(fields: [downtimeReasonId], references: [id])
+
+  @@index([operatorId])
+  @@index([shiftId])
+  @@index([downtimeReasonId])
+}
+
+// ── 인력/정지사유 (MST) ──
+model Operator {
+  id      String  @id @default(cuid())
+  code    String  @unique // 사번
+  name    String
+  active  Boolean @default(true)
+  results ProductionResult[]
+}
+
+model Shift {
+  id      String  @id @default(cuid())
+  code    String  @unique // 예 DAY/NIGHT
+  name    String // 주간/야간
+  results ProductionResult[]
+}
+
+// category: PLANNED | UNPLANNED
+model DowntimeReason {
+  id       String  @id @default(cuid())
+  code     String  @unique
+  label    String
+  category String  @default("UNPLANNED")
+  results  ProductionResult[]
 }
 
 // 재고 트랜잭션 append-only. 현재고 = 파생 집계(deriveStock).
