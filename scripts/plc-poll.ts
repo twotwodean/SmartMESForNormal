@@ -11,6 +11,7 @@ import { DEVICES, PLC_HOST, PLC_PORT, PLC_POLL_MS, PLC_TIMEOUT_MS } from "@/lib/
 import { logError, logger } from "@/lib/log";
 import { closeModbusClient, connectModbusClient, type ModbusClient } from "@/lib/plc/modbus";
 import { ingest, markOffline, pollOnce } from "@/lib/plc/poller";
+import { checkDuePreventive } from "@/lib/services/predictive-service";
 
 const ONCE = process.env.PLC_POLL_ONCE === "1" || process.argv.includes("--once");
 
@@ -41,12 +42,25 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** PdM-1: 폴 사이클당 1회, 시간기반 예방정비 만기 여부를 확인해 자동생성한다. 실패해도 폴링 루프는 계속 진행. */
+async function runDuePreventiveCheck(): Promise<void> {
+  try {
+    const { created } = await checkDuePreventive(new Date());
+    if (created > 0) {
+      logger.info("plc-poll: 정기 예방정비 자동생성", { created });
+    }
+  } catch (err) {
+    logError("plc-poll: 정기 예방정비 확인 실패", err);
+  }
+}
+
 async function main(): Promise<void> {
   const client = await connectModbusClient(PLC_HOST, PLC_PORT, PLC_TIMEOUT_MS);
   logger.info("plc-poll connected", { host: PLC_HOST, port: PLC_PORT, once: ONCE, intervalMs: PLC_POLL_MS });
 
   if (ONCE) {
     await pollAllDevices(client);
+    await runDuePreventiveCheck();
     closeModbusClient(client);
     logger.info("plc-poll one-shot done");
     return;
@@ -65,6 +79,7 @@ async function main(): Promise<void> {
 
   while (!stopping) {
     await pollAllDevices(client);
+    await runDuePreventiveCheck();
     await sleep(PLC_POLL_MS);
   }
 }

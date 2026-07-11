@@ -16,6 +16,7 @@ import {
 } from "@/lib/plc/datamap";
 import { decodeValue } from "@/lib/plc/decode";
 import type { ModbusClient } from "@/lib/plc/modbus";
+import { evaluateAndTrigger } from "@/lib/services/predictive-service";
 import { recordPlcProduction } from "@/lib/services/production-service";
 
 /** signal key → 디코드된 값(숫자 또는 논리값)의 맵. `lib/plc/datamap.ts`의 REGISTERS.key가 키가 된다. */
@@ -186,6 +187,17 @@ export async function ingest(reading: Reading, equipmentCode: string): Promise<v
     });
   }
   lastAlarmActive.set(equipment.id, isAlarm);
+
+  // PdM-1: 임계 규칙 평가 → 위반 시 PREDICTIVE 정비지시+알람 자동생성. 실패해도 폴링 루프는 계속 진행.
+  try {
+    await evaluateAndTrigger(equipmentCode, {
+      temperature: data.temperature,
+      loadPct: data.loadPct,
+      runtimeHours: runSecs / 3600,
+    });
+  } catch (err) {
+    logError("plc-poller: 예지보전 트리거 실패", err, { equipmentCode });
+  }
 }
 
 /** 읽기 타임아웃/에러 시 해당 장비만 offline으로 표기(§9-4). 다음 주기는 계속 진행된다. */
