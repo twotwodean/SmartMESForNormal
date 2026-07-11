@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { InventoryTxnCreateSchema } from "@/lib/api/schemas";
 import { listTxns, createTxn } from "@/lib/services/inventory-service";
 import { audit } from "@/lib/services/audit-service";
 export const runtime = "nodejs";
@@ -15,11 +17,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await requireRole("OPERATOR");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
-  if (!body?.itemId || !body?.type || typeof body.qty !== "number") {
-    return NextResponse.json({ error: "itemId·type·qty가 필요합니다." }, { status: 400 });
-  }
-  const txn = await createTxn({ itemId: body.itemId, type: body.type, qty: body.qty, ref: body.ref });
+  const p = await parseBody(req, InventoryTxnCreateSchema);
+  if ("res" in p) return p.res;
+  const txn = await createTxn(p.data);
   await audit("INVENTORY_TXN", "InventoryTxn", txn.id);
   return NextResponse.json(txn, { status: 201 });
 }

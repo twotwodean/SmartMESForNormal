@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { WorkOrderCreateSchema } from "@/lib/api/schemas";
 import { listWorkOrders, createWorkOrder } from "@/lib/services/work-order-service";
 export const runtime = "nodejs";
 
@@ -12,10 +14,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const auth = await requireRole("OPERATOR");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
-  if (!body?.itemId || typeof body.qty !== "number") {
-    return NextResponse.json({ error: "itemId와 qty가 필요합니다." }, { status: 400 });
-  }
-  const wo = await createWorkOrder({ itemId: body.itemId, qty: body.qty, workCenterId: body.workCenterId });
+  const p = await parseBody(req, WorkOrderCreateSchema);
+  if ("res" in p) return p.res;
+  const wo = await createWorkOrder(p.data);
   return NextResponse.json(wo, { status: 201 });
 }

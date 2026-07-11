@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { ProcessStageUpdateSchema } from "@/lib/api/schemas";
 import { updateProcessStage, deleteProcessStage } from "@/lib/services/master-service";
 import { audit } from "@/lib/services/audit-service";
 export const runtime = "nodejs";
@@ -7,15 +9,10 @@ export const runtime = "nodejs";
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireRole("ADMIN");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
-  if (body?.seq != null && typeof body.seq !== "number") {
-    return NextResponse.json({ error: "seq는 숫자여야 합니다." }, { status: 400 });
-  }
+  const p = await parseBody(req, ProcessStageUpdateSchema);
+  if ("res" in p) return p.res;
   try {
-    const r = await updateProcessStage(params.id, {
-      name: typeof body?.name === "string" ? body.name : undefined,
-      seq: typeof body?.seq === "number" ? body.seq : undefined,
-    });
+    const r = await updateProcessStage(params.id, p.data);
     await audit("UPDATE", "ProcessStage", r.id);
     return NextResponse.json(r);
   } catch (e) {

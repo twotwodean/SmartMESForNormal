@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { PaymentCreateSchema } from "@/lib/api/schemas";
 import { recordPayment } from "@/lib/services/billing-service";
 import { audit } from "@/lib/services/audit-service";
 export const runtime = "nodejs";
@@ -7,12 +9,10 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   const auth = await requireRole("OPERATOR");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
-  if (!body?.invoiceId || typeof body.amount !== "number") {
-    return NextResponse.json({ error: "invoiceId·amount가 필요합니다." }, { status: 400 });
-  }
+  const p = await parseBody(req, PaymentCreateSchema);
+  if ("res" in p) return p.res;
   try {
-    const result = await recordPayment({ invoiceId: body.invoiceId, amount: body.amount });
+    const result = await recordPayment(p.data);
     await audit("PAYMENT", "Payment", result.payment.id);
     return NextResponse.json(result, { status: 201 });
   } catch (e) {

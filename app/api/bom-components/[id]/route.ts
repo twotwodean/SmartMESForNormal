@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { BomComponentUpdateSchema } from "@/lib/api/schemas";
 import { updateBomQty, removeBomComponent } from "@/lib/services/master-service";
 import { audit } from "@/lib/services/audit-service";
 export const runtime = "nodejs";
@@ -7,12 +9,10 @@ export const runtime = "nodejs";
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireRole("ADMIN");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
-  if (typeof body?.qtyPer !== "number") {
-    return NextResponse.json({ error: "qtyPer가 필요합니다." }, { status: 400 });
-  }
+  const p = await parseBody(req, BomComponentUpdateSchema);
+  if ("res" in p) return p.res;
   try {
-    const r = await updateBomQty(params.id, body.qtyPer);
+    const r = await updateBomQty(params.id, p.data.qtyPer);
     await audit("UPDATE", "BomComponent", r.id);
     return NextResponse.json(r);
   } catch (e) {

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, requireRole } from "@/lib/api/guard";
+import { parseBody } from "@/lib/api/validate";
+import { RoutingCreateSchema } from "@/lib/api/schemas";
 import { listRoutings, createRouting } from "@/lib/services/master-service";
 import { audit } from "@/lib/services/audit-service";
 export const runtime = "nodejs";
@@ -15,12 +17,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await requireRole("ADMIN");
   if ("res" in auth) return auth.res;
-  const body = await req.json().catch(() => null);
-  if (typeof body?.itemId !== "string" || typeof body?.name !== "string") {
-    return NextResponse.json({ error: "itemId·name이 필요합니다." }, { status: 400 });
-  }
+  const p = await parseBody(req, RoutingCreateSchema);
+  if ("res" in p) return p.res;
   try {
-    const r = await createRouting({ itemId: body.itemId, name: body.name });
+    const r = await createRouting(p.data);
     await audit("CREATE", "Routing", r.id);
     return NextResponse.json(r, { status: 201 });
   } catch (e) {
