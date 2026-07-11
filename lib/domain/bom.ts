@@ -19,3 +19,19 @@ export function explodeBom(itemId: string, qty: number, bom: BomLink[]): Map<str
   walk(itemId, qty);
   return req;
 }
+
+/** parent에 child를 추가하면 순환이 생기는가? (child가 parent의 조상이거나 자기 자신) */
+export function wouldCreateCycle(parentId: string, childId: string, links: BomLink[]): boolean {
+  if (parentId === childId) return true;
+  // child로부터 하위(자손) 전개했을 때 parent가 나오면 순환
+  const stack = [childId];
+  const seen = new Set<string>();
+  while (stack.length) {
+    const cur = stack.pop()!;
+    if (cur === parentId) return true;
+    if (seen.has(cur)) continue;
+    seen.add(cur);
+    for (const l of links) if (l.parentId === cur) stack.push(l.childId);
+  }
+  return false;
+}

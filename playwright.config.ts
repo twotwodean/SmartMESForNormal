@@ -1,19 +1,34 @@
 import { defineConfig } from "@playwright/test";
 
 const PORT = 3001;
+const isCI = !!process.env.CI;
+
 export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
   workers: 1, // SQLite 직렬 + 결정적
   fullyParallel: false,
-  retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
+  retries: isCI ? 1 : 0,
   timeout: 30_000,
-  use: { baseURL: `http://localhost:${PORT}`, trace: "on-first-retry" },
+  outputDir: "test-results", // 영상·트레이스·스크린샷 저장 위치
+  reporter: [
+    ["list"],
+    ["./e2e/progress-reporter.ts"], // 테스트별 진행 로그(test-results/e2e-progress.log|jsonl)
+    ["html", { open: "never", outputFolder: "playwright-report" }], // 영상 임베드된 HTML 리포트
+    ["json", { outputFile: "test-results/results.json" }],
+    ["junit", { outputFile: "test-results/junit.xml" }],
+  ],
+  use: {
+    baseURL: `http://localhost:${PORT}`,
+    // 로컬은 전량 녹화(테스트 영상 남기기), CI는 실패건만 보관(용량 절약)
+    video: isCI ? "retain-on-failure" : "on",
+    trace: isCI ? "on-first-retry" : "on",
+    screenshot: "only-on-failure",
+  },
   webServer: {
-    command: process.env.CI ? "npm run start" : "npm run dev",
+    command: isCI ? "npm run start" : "npm run dev",
     url: `http://localhost:${PORT}/login`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !isCI,
     timeout: 120_000,
     env: { DATABASE_URL: "file:./e2e.db", SESSION_SECRET: "e2e-secret" },
   },

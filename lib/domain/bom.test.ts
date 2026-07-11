@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { explodeBom } from "@/lib/domain/bom";
+import { explodeBom, wouldCreateCycle } from "@/lib/domain/bom";
 
 const bom = [
   { parentId: "P1", childId: "S1", qtyPer: 2 },
@@ -16,5 +16,18 @@ describe("explodeBom", () => {
   });
   it("BOM 없는 품목은 빈 맵", () => {
     expect(explodeBom("R1", 5, bom).size).toBe(0);
+  });
+});
+
+describe("wouldCreateCycle", () => {
+  it("자기참조는 순환", () => {
+    expect(wouldCreateCycle("P1", "P1", bom)).toBe(true);
+  });
+  it("직접 순환(A→B 존재 시 B→A 추가)은 순환", () => {
+    const links = [{ parentId: "A", childId: "B", qtyPer: 1 }];
+    expect(wouldCreateCycle("B", "A", links)).toBe(true);
+  });
+  it("정상 추가는 순환 아님", () => {
+    expect(wouldCreateCycle("P1", "R1", bom)).toBe(false);
   });
 });
