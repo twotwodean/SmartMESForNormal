@@ -15,11 +15,19 @@ import {
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { NumberStepper } from "@/components/ui/number-stepper";
+import { Switch } from "@/components/ui/switch";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 import { toCsv } from "@/lib/domain/csv";
 import { downloadCsv } from "@/components/app/download-csv";
-import type { ItemType } from "@/lib/domain/types";
-import type { ItemRow, WorkCenterRow, ProcessStageRow } from "@/lib/services/master-service";
+import type { ItemType, DowntimeCategory } from "@/lib/domain/types";
+import type {
+  ItemRow,
+  WorkCenterRow,
+  ProcessStageRow,
+  OperatorRow,
+  ShiftRow,
+  DowntimeReasonRow,
+} from "@/lib/services/master-service";
 import { BomTab } from "./bom-tab";
 import { RoutingTab } from "./routing-tab";
 
@@ -31,13 +39,22 @@ const ITEM_TYPE_LABEL: Record<ItemType, string> = {
 };
 const ITEM_TYPES: ItemType[] = ["FINISHED", "SEMI", "RAW", "SUB"];
 
+const DOWNTIME_CATEGORY_LABEL: Record<DowntimeCategory, string> = {
+  PLANNED: "계획",
+  UNPLANNED: "비계획",
+};
+const DOWNTIME_CATEGORIES: DowntimeCategory[] = ["PLANNED", "UNPLANNED"];
+
 interface MasterInnerProps {
   items: ItemRow[];
   workCenters: WorkCenterRow[];
   processStages: ProcessStageRow[];
+  operators: OperatorRow[];
+  shifts: ShiftRow[];
+  downtimeReasons: DowntimeReasonRow[];
 }
 
-function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
+function MasterInner({ items, workCenters, processStages, operators, shifts, downtimeReasons }: MasterInnerProps) {
   const { toast } = useToast();
   const router = useRouter();
 
@@ -331,6 +348,268 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
     ]));
   }
 
+  // ========================================================================
+  // 작업자
+  // ========================================================================
+  const [opCreateOpen, setOpCreateOpen] = React.useState(false);
+  const [opCode, setOpCode] = React.useState("");
+  const [opName, setOpName] = React.useState("");
+  const [opActive, setOpActive] = React.useState(true);
+
+  function resetOpCreateForm() {
+    setOpCode("");
+    setOpName("");
+    setOpActive(true);
+  }
+
+  async function submitOpCreate() {
+    const res = await fetch("/api/operators", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: opCode, name: opName, active: opActive }),
+    });
+    await handleResponse(res, "등록됨", () => {
+      setOpCreateOpen(false);
+      resetOpCreateForm();
+    });
+  }
+
+  const [opEditOpen, setOpEditOpen] = React.useState(false);
+  const [opEditTarget, setOpEditTarget] = React.useState<OperatorRow | null>(null);
+  const [opEditName, setOpEditName] = React.useState("");
+  const [opEditActive, setOpEditActive] = React.useState(true);
+
+  function openOpEdit(row: OperatorRow) {
+    setOpEditTarget(row);
+    setOpEditName(row.name);
+    setOpEditActive(row.active);
+    setOpEditOpen(true);
+  }
+
+  async function submitOpEdit() {
+    if (!opEditTarget) return;
+    const res = await fetch(`/api/operators/${opEditTarget.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: opEditName, active: opEditActive }),
+    });
+    await handleResponse(res, "수정됨", () => setOpEditOpen(false));
+  }
+
+  const [opDeleteOpen, setOpDeleteOpen] = React.useState(false);
+  const [opDeleteTarget, setOpDeleteTarget] = React.useState<OperatorRow | null>(null);
+
+  function openOpDelete(row: OperatorRow) {
+    setOpDeleteTarget(row);
+    setOpDeleteOpen(true);
+  }
+
+  async function submitOpDelete() {
+    if (!opDeleteTarget) return;
+    const res = await fetch(`/api/operators/${opDeleteTarget.id}`, { method: "DELETE" });
+    await handleResponse(res, "삭제됨", () => setOpDeleteOpen(false));
+  }
+
+  const opColumns: ColumnDef<OperatorRow>[] = [
+    { accessorKey: "code", header: "사번", cell: (c) => <span className="font-mono text-caption">{c.getValue<string>()}</span> },
+    { accessorKey: "name", header: "이름" },
+    { accessorKey: "active", header: "사용", cell: (c) => (c.getValue<boolean>() ? "사용" : "미사용") },
+    {
+      id: "act",
+      header: "액션",
+      cell: (c) => (
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => openOpEdit(c.row.original)}>수정</Button>
+          <Button variant="secondary" size="sm" onClick={() => openOpDelete(c.row.original)}>삭제</Button>
+        </div>
+      ),
+    },
+  ];
+
+  function exportOperatorsCsv() {
+    downloadCsv("master-operators.csv", toCsv(
+      operators.map((o) => ({ ...o, active: o.active ? "사용" : "미사용" })),
+      [
+        { key: "code", label: "사번" },
+        { key: "name", label: "이름" },
+        { key: "active", label: "사용" },
+      ],
+    ));
+  }
+
+  // ========================================================================
+  // 근무조
+  // ========================================================================
+  const [shCreateOpen, setShCreateOpen] = React.useState(false);
+  const [shCode, setShCode] = React.useState("");
+  const [shName, setShName] = React.useState("");
+
+  function resetShCreateForm() {
+    setShCode("");
+    setShName("");
+  }
+
+  async function submitShCreate() {
+    const res = await fetch("/api/shifts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: shCode, name: shName }),
+    });
+    await handleResponse(res, "등록됨", () => {
+      setShCreateOpen(false);
+      resetShCreateForm();
+    });
+  }
+
+  const [shEditOpen, setShEditOpen] = React.useState(false);
+  const [shEditTarget, setShEditTarget] = React.useState<ShiftRow | null>(null);
+  const [shEditName, setShEditName] = React.useState("");
+
+  function openShEdit(row: ShiftRow) {
+    setShEditTarget(row);
+    setShEditName(row.name);
+    setShEditOpen(true);
+  }
+
+  async function submitShEdit() {
+    if (!shEditTarget) return;
+    const res = await fetch(`/api/shifts/${shEditTarget.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: shEditName }),
+    });
+    await handleResponse(res, "수정됨", () => setShEditOpen(false));
+  }
+
+  const [shDeleteOpen, setShDeleteOpen] = React.useState(false);
+  const [shDeleteTarget, setShDeleteTarget] = React.useState<ShiftRow | null>(null);
+
+  function openShDelete(row: ShiftRow) {
+    setShDeleteTarget(row);
+    setShDeleteOpen(true);
+  }
+
+  async function submitShDelete() {
+    if (!shDeleteTarget) return;
+    const res = await fetch(`/api/shifts/${shDeleteTarget.id}`, { method: "DELETE" });
+    await handleResponse(res, "삭제됨", () => setShDeleteOpen(false));
+  }
+
+  const shColumns: ColumnDef<ShiftRow>[] = [
+    { accessorKey: "code", header: "코드", cell: (c) => <span className="font-mono text-caption">{c.getValue<string>()}</span> },
+    { accessorKey: "name", header: "명" },
+    {
+      id: "act",
+      header: "액션",
+      cell: (c) => (
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => openShEdit(c.row.original)}>수정</Button>
+          <Button variant="secondary" size="sm" onClick={() => openShDelete(c.row.original)}>삭제</Button>
+        </div>
+      ),
+    },
+  ];
+
+  function exportShiftsCsv() {
+    downloadCsv("master-shifts.csv", toCsv(shifts, [
+      { key: "code", label: "코드" },
+      { key: "name", label: "명" },
+    ]));
+  }
+
+  // ========================================================================
+  // 정지사유
+  // ========================================================================
+  const [drCreateOpen, setDrCreateOpen] = React.useState(false);
+  const [drCode, setDrCode] = React.useState("");
+  const [drLabel, setDrLabel] = React.useState("");
+  const [drCategory, setDrCategory] = React.useState<DowntimeCategory>("UNPLANNED");
+
+  function resetDrCreateForm() {
+    setDrCode("");
+    setDrLabel("");
+    setDrCategory("UNPLANNED");
+  }
+
+  async function submitDrCreate() {
+    const res = await fetch("/api/downtime-reasons", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: drCode, label: drLabel, category: drCategory }),
+    });
+    await handleResponse(res, "등록됨", () => {
+      setDrCreateOpen(false);
+      resetDrCreateForm();
+    });
+  }
+
+  const [drEditOpen, setDrEditOpen] = React.useState(false);
+  const [drEditTarget, setDrEditTarget] = React.useState<DowntimeReasonRow | null>(null);
+  const [drEditLabel, setDrEditLabel] = React.useState("");
+  const [drEditCategory, setDrEditCategory] = React.useState<DowntimeCategory>("UNPLANNED");
+
+  function openDrEdit(row: DowntimeReasonRow) {
+    setDrEditTarget(row);
+    setDrEditLabel(row.label);
+    setDrEditCategory(row.category);
+    setDrEditOpen(true);
+  }
+
+  async function submitDrEdit() {
+    if (!drEditTarget) return;
+    const res = await fetch(`/api/downtime-reasons/${drEditTarget.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label: drEditLabel, category: drEditCategory }),
+    });
+    await handleResponse(res, "수정됨", () => setDrEditOpen(false));
+  }
+
+  const [drDeleteOpen, setDrDeleteOpen] = React.useState(false);
+  const [drDeleteTarget, setDrDeleteTarget] = React.useState<DowntimeReasonRow | null>(null);
+
+  function openDrDelete(row: DowntimeReasonRow) {
+    setDrDeleteTarget(row);
+    setDrDeleteOpen(true);
+  }
+
+  async function submitDrDelete() {
+    if (!drDeleteTarget) return;
+    const res = await fetch(`/api/downtime-reasons/${drDeleteTarget.id}`, { method: "DELETE" });
+    await handleResponse(res, "삭제됨", () => setDrDeleteOpen(false));
+  }
+
+  const drColumns: ColumnDef<DowntimeReasonRow>[] = [
+    { accessorKey: "code", header: "코드", cell: (c) => <span className="font-mono text-caption">{c.getValue<string>()}</span> },
+    { accessorKey: "label", header: "사유" },
+    {
+      accessorKey: "category",
+      header: "구분",
+      cell: (c) => DOWNTIME_CATEGORY_LABEL[c.getValue<DowntimeCategory>()],
+    },
+    {
+      id: "act",
+      header: "액션",
+      cell: (c) => (
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => openDrEdit(c.row.original)}>수정</Button>
+          <Button variant="secondary" size="sm" onClick={() => openDrDelete(c.row.original)}>삭제</Button>
+        </div>
+      ),
+    },
+  ];
+
+  function exportDowntimeReasonsCsv() {
+    downloadCsv("master-downtime-reasons.csv", toCsv(
+      downtimeReasons.map((d) => ({ ...d, category: DOWNTIME_CATEGORY_LABEL[d.category] })),
+      [
+        { key: "code", label: "코드" },
+        { key: "label", label: "사유" },
+        { key: "category", label: "구분" },
+      ],
+    ));
+  }
+
   return (
     <>
       <SectionHeader title="기준정보 · 관리" description="품목 · 작업장 · 공정 등록/수정/삭제" />
@@ -340,6 +619,9 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
           <TabsTrigger value="items">품목</TabsTrigger>
           <TabsTrigger value="workCenters">작업장</TabsTrigger>
           <TabsTrigger value="processStages">공정</TabsTrigger>
+          <TabsTrigger value="operators">작업자</TabsTrigger>
+          <TabsTrigger value="shifts">근무조</TabsTrigger>
+          <TabsTrigger value="downtimeReasons">정지사유</TabsTrigger>
           <TabsTrigger value="bom">BOM</TabsTrigger>
           <TabsTrigger value="routing">라우팅</TabsTrigger>
         </TabsList>
@@ -385,6 +667,51 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
             </CardHeader>
             <CardContent>
               <DataTable columns={psColumns} data={processStages} enableFilter filterPlaceholder="코드·명 검색" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="operators">
+          <Card>
+            <CardHeader className="justify-between">
+              <CardTitle>작업자 목록</CardTitle>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={exportOperatorsCsv}>CSV</Button>
+                <Button size="sm" onClick={() => setOpCreateOpen(true)}>작업자 등록</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={opColumns} data={operators} enableFilter filterPlaceholder="사번·이름 검색" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="shifts">
+          <Card>
+            <CardHeader className="justify-between">
+              <CardTitle>근무조 목록</CardTitle>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={exportShiftsCsv}>CSV</Button>
+                <Button size="sm" onClick={() => setShCreateOpen(true)}>근무조 등록</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={shColumns} data={shifts} enableFilter filterPlaceholder="코드·명 검색" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="downtimeReasons">
+          <Card>
+            <CardHeader className="justify-between">
+              <CardTitle>정지사유 목록</CardTitle>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={exportDowntimeReasonsCsv}>CSV</Button>
+                <Button size="sm" onClick={() => setDrCreateOpen(true)}>정지사유 등록</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={drColumns} data={downtimeReasons} enableFilter filterPlaceholder="코드·사유 검색" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -632,6 +959,228 @@ function MasterInner({ items, workCenters, processStages }: MasterInnerProps) {
           <DialogFooter>
             <DialogClose asChild><Button variant="secondary">취소</Button></DialogClose>
             <Button variant="danger" onClick={submitPsDelete}>삭제</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 작업자 등록 */}
+      <Dialog open={opCreateOpen} onOpenChange={setOpCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>작업자 등록</DialogTitle>
+            <DialogDescription>사번·이름·사용여부를 입력합니다.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">사번</span>
+              <Input value={opCode} onChange={(e) => setOpCode(e.target.value)} placeholder="예: OP-1001" />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">이름</span>
+              <Input value={opName} onChange={(e) => setOpName(e.target.value)} />
+            </label>
+            <label className="flex items-center gap-3">
+              <span className="text-body-sm text-text-muted">사용</span>
+              <Switch checked={opActive} onCheckedChange={setOpActive} aria-label="사용" />
+            </label>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">취소</Button></DialogClose>
+            <Button onClick={submitOpCreate}>등록</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 작업자 수정 */}
+      <Dialog open={opEditOpen} onOpenChange={setOpEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>작업자 수정</DialogTitle>
+            <DialogDescription>사번은 변경할 수 없습니다.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">사번</span>
+              <Input value={opEditTarget?.code ?? ""} disabled />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">이름</span>
+              <Input value={opEditName} onChange={(e) => setOpEditName(e.target.value)} />
+            </label>
+            <label className="flex items-center gap-3">
+              <span className="text-body-sm text-text-muted">사용</span>
+              <Switch checked={opEditActive} onCheckedChange={setOpEditActive} aria-label="사용" />
+            </label>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">취소</Button></DialogClose>
+            <Button onClick={submitOpEdit}>저장</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 작업자 삭제 확인 */}
+      <Dialog open={opDeleteOpen} onOpenChange={setOpDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>작업자 삭제</DialogTitle>
+            <DialogDescription>
+              {opDeleteTarget ? `"${opDeleteTarget.code} · ${opDeleteTarget.name}"을(를) ` : ""}삭제하시겠습니까?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">취소</Button></DialogClose>
+            <Button variant="danger" onClick={submitOpDelete}>삭제</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 근무조 등록 */}
+      <Dialog open={shCreateOpen} onOpenChange={setShCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>근무조 등록</DialogTitle>
+            <DialogDescription>코드·명을 입력합니다.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">코드</span>
+              <Input value={shCode} onChange={(e) => setShCode(e.target.value)} placeholder="예: SHIFT-A" />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">명</span>
+              <Input value={shName} onChange={(e) => setShName(e.target.value)} />
+            </label>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">취소</Button></DialogClose>
+            <Button onClick={submitShCreate}>등록</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 근무조 수정 */}
+      <Dialog open={shEditOpen} onOpenChange={setShEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>근무조 수정</DialogTitle>
+            <DialogDescription>코드는 변경할 수 없습니다.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">코드</span>
+              <Input value={shEditTarget?.code ?? ""} disabled />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">명</span>
+              <Input value={shEditName} onChange={(e) => setShEditName(e.target.value)} />
+            </label>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">취소</Button></DialogClose>
+            <Button onClick={submitShEdit}>저장</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 근무조 삭제 확인 */}
+      <Dialog open={shDeleteOpen} onOpenChange={setShDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>근무조 삭제</DialogTitle>
+            <DialogDescription>
+              {shDeleteTarget ? `"${shDeleteTarget.code} · ${shDeleteTarget.name}"을(를) ` : ""}삭제하시겠습니까?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">취소</Button></DialogClose>
+            <Button variant="danger" onClick={submitShDelete}>삭제</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 정지사유 등록 */}
+      <Dialog open={drCreateOpen} onOpenChange={setDrCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>정지사유 등록</DialogTitle>
+            <DialogDescription>코드·사유·구분을 입력합니다.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">코드</span>
+              <Input value={drCode} onChange={(e) => setDrCode(e.target.value)} placeholder="예: DT-SETUP" />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">사유</span>
+              <Input value={drLabel} onChange={(e) => setDrLabel(e.target.value)} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">구분</span>
+              <Select value={drCategory} onValueChange={(v) => setDrCategory(v as DowntimeCategory)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DOWNTIME_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>{DOWNTIME_CATEGORY_LABEL[c]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">취소</Button></DialogClose>
+            <Button onClick={submitDrCreate}>등록</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 정지사유 수정 */}
+      <Dialog open={drEditOpen} onOpenChange={setDrEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>정지사유 수정</DialogTitle>
+            <DialogDescription>코드는 변경할 수 없습니다.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">코드</span>
+              <Input value={drEditTarget?.code ?? ""} disabled />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">사유</span>
+              <Input value={drEditLabel} onChange={(e) => setDrEditLabel(e.target.value)} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-sm text-text-muted">구분</span>
+              <Select value={drEditCategory} onValueChange={(v) => setDrEditCategory(v as DowntimeCategory)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DOWNTIME_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>{DOWNTIME_CATEGORY_LABEL[c]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">취소</Button></DialogClose>
+            <Button onClick={submitDrEdit}>저장</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 정지사유 삭제 확인 */}
+      <Dialog open={drDeleteOpen} onOpenChange={setDrDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>정지사유 삭제</DialogTitle>
+            <DialogDescription>
+              {drDeleteTarget ? `"${drDeleteTarget.code} · ${drDeleteTarget.label}"을(를) ` : ""}삭제하시겠습니까?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">취소</Button></DialogClose>
+            <Button variant="danger" onClick={submitDrDelete}>삭제</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
