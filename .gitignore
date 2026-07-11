@@ -11,6 +11,8 @@ e2e.db
 e2e.db-journal
 synth-smoke.db
 synth-smoke.db-journal
+prisma/load.db
+prisma/load.db-journal
 test-results/
 playwright-report/
 .last-run.json
